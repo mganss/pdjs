@@ -42,13 +42,13 @@ typedef struct _js_inlet
 
 // Convert a JavaScript string to a std::string.  To not bother too
 // much with string encodings we just use ascii.
-string ObjectToString(v8::Isolate* isolate, v8::Local<v8::Value> value) {
+static string js_object_to_string(v8::Isolate* isolate, v8::Local<v8::Value> value) {
     v8::String::Utf8Value utf8_value(isolate, value);
     return string(*utf8_value);
 }
 
 // Reads a file into a v8 string.
-v8::MaybeLocal<v8::String> js_readfile(v8::Isolate* isolate, const char *name) {
+static v8::MaybeLocal<v8::String> js_readfile(v8::Isolate* isolate, const char *name) {
     FILE* file = fopen(name, "rb");
     if (file == NULL) return v8::MaybeLocal<v8::String>();
 
@@ -117,12 +117,12 @@ static string js_get_exception_msg(v8::Isolate* isolate, v8::TryCatch* try_catch
     return os.str();
 }
 
-void js_get(v8::Local<v8::Name> property,
+static void js_get(v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(info.Data());
     t_js* x = (t_js*)f->Value();
-    auto name = ObjectToString(js_isolate, property);
+    auto name = js_object_to_string(js_isolate, property);
 
     if (name == "inlets")
     {
@@ -146,12 +146,12 @@ void js_get(v8::Local<v8::Name> property,
     }
 }
 
-void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
+static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(info.Data());
     t_js* x = (t_js*)f->Value();
-    auto name = ObjectToString(js_isolate, property);
+    auto name = js_object_to_string(js_isolate, property);
 
     if (name == "inlets")
     {
@@ -250,7 +250,7 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
     }
     else if (arg->IsString())
     {
-        auto s = ObjectToString(isolate, arg);
+        auto s = js_object_to_string(isolate, arg);
         t_atom a;
         SETSYMBOL(&a, gensym(s.c_str()));
         args.push_back(a);
@@ -290,7 +290,7 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
                 }
                 else if (!arg->IsArray())
                 {
-                    auto s = ObjectToString(isolate, arg);
+                    auto s = js_object_to_string(isolate, arg);
 
                     if (s == "bang")
                     {
