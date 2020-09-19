@@ -12,6 +12,7 @@ function bang() {
     outlet(0, 47.11);
     outlet(0, ["x", "y", "z", 1, 2, 3]);
     outlet(1, "hallo", "ballo", 12.34);
+    messnamed("mess", "bang");
 }
 
 function msg_float(f) {

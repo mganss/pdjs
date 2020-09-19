@@ -322,6 +322,62 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
     }
 }
 
+static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    if (args.Length() < 1) return;
+
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
+    t_js* x = (t_js*)f->Value();
+    v8::Local<v8::String> symbolString;
+
+    if (args[0]->ToString(context).ToLocal(&symbolString))
+    {
+        auto symbol = js_object_to_string(js_isolate, symbolString);
+        t_symbol *sym = gensym(symbol.c_str());
+
+        if (sym->s_thing != NULL)
+        {
+            vector<t_atom> argv;
+
+            for (int i = 1; i < args.Length(); i++)
+            {
+                v8::Local<v8::Value> arg = args[i];
+                auto uma = js_unmarshal_arg(arg, isolate, context);
+                argv.insert(argv.end(), uma.begin(), uma.end());
+            }
+
+            if (argv.size() > 0)
+            {
+                t_symbol *type;
+
+                if (argv.size() == 1)
+                {
+                    auto arg = argv[0];
+
+                    if (arg.a_type == A_FLOAT)
+                        type = &s_float;
+                    else if (arg.a_type == A_SYMBOL)
+                    {
+                        if (string(atom_getsymbol(&arg)->s_name) == "bang")
+                            type = &s_bang;
+                        else
+                            type = &s_symbol;
+                    }
+                }
+                else
+                {
+                    type = &s_list;
+                }
+
+                pd_typedmess(sym->s_thing, type, (int)argv.size(), argv.data());
+            }
+        }
+    }
+}
+
 struct js_file
 {
     string path;
@@ -413,6 +469,7 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
             global_templ->Set(js_isolate, "post", v8::FunctionTemplate::New(js_isolate, js_post));
             global_templ->Set(js_isolate, "outlet", v8::FunctionTemplate::New(js_isolate, js_outlet, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "include", v8::FunctionTemplate::New(js_isolate, js_include, v8::External::New(js_isolate, x)));
+            global_templ->Set(js_isolate, "messnamed", v8::FunctionTemplate::New(js_isolate, js_messnamed, v8::External::New(js_isolate, x)));
 
             // Create a new context.
             context = v8::Context::New(js_isolate, nullptr, global_templ);

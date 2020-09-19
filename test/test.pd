@@ -12,7 +12,11 @@
 #X msg 276 28 hallo ballo;
 #X msg 210 18 compile;
 #X msg 33 31 compile other.js;
+#X obj 50 161 r mess;
+#X obj 51 193 print mess;
 #X connect 0 0 1 0;
+#X connect 1 0 6 0;
+#X connect 1 1 7 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 2;
 #X connect 4 0 1 2;
@@ -20,3 +24,4 @@
 #X connect 8 0 1 0;
 #X connect 9 0 1 0;
 #X connect 10 0 1 0;
+#X connect 11 0 12 0;
