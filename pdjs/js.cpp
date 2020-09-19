@@ -322,30 +322,80 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
     }
 }
 
-static t_js *js_load(t_js* x, const char *script_name = NULL)
+struct js_file
 {
+    string path;
+    string dir;
+};
+
+static js_file js_getfile(t_js *x, const char* script_name)
+{
+    js_file result;
+    t_symbol* canvas_dir = canvas_getdir(x->canvas);
+    char dirresult[MAX_PATH];
+    char* nameresult;
+    int fd = open_via_path(canvas_dir->s_name, script_name, "", dirresult, &nameresult, sizeof(dirresult), 1);
+
+    if (fd < 0)
+    {
+        pd_error(&x->x_obj, "Script file '%s' not found.", script_name);
+        return result;
+    }
+
+    sys_close(fd);
+
+    result.dir = string(dirresult);
+    result.path = string(dirresult);
+    result.path.append("/");
+    result.path.append(nameresult);
+
+    return result;
+}
+
+static t_js* js_load(t_js* x, const char* script_name, bool create_context);
+
+static void js_include(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    if (args.Length() < 1) return;
+
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
+    t_js* x = (t_js*)f->Value();
+
+    for (int i = 0; i < args.Length(); i++)
+    {
+        if (args[i]->IsString())
+        {
+            auto script_name = js_object_to_string(isolate, args[i]);
+            js_load(x, script_name.c_str(), false);
+        }
+    }
+}
+
+static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_context = true)
+{
+    string path;
+
     if (script_name != NULL)
     {
-        t_symbol* canvas_dir = canvas_getdir(x->canvas);
-        char dirresult[MAX_PATH];
-        char* nameresult;
-        int fd = open_via_path(canvas_dir->s_name, script_name, "", dirresult, &nameresult, sizeof(dirresult), 1);
+        auto file = js_getfile(x, script_name);
 
-        if (fd < 0)
-        {
-            pd_error(&x->x_obj, "Script file '%s' not found.", script_name);
+        if (file.dir.size() == 0)
             return NULL;
+
+        if (create_context)
+        {
+            x->dir = file.dir;
+            x->path = file.path;
         }
 
-        sys_close(fd);
-
-        x->dir = string(dirresult);
-
-        string script_path(dirresult);
-        script_path.append("/");
-        script_path.append(nameresult);
-
-        x->path = script_path;
+        path = file.path;
+    }
+    else
+    {
+        path = x->path;
     }
 
     // Initialize V8.
@@ -354,38 +404,49 @@ static t_js *js_load(t_js* x, const char *script_name = NULL)
 
         // Create a stack-allocated handle scope.
         v8::HandleScope handle_scope(js_isolate);
+        v8::Local<v8::Context> context;
 
-        v8::Local<v8::ObjectTemplate> global_templ = v8::ObjectTemplate::New(js_isolate);
-        global_templ->SetHandler(v8::NamedPropertyHandlerConfiguration(js_get, js_set, nullptr, nullptr, nullptr, v8::External::New(js_isolate, x)));
-        global_templ->Set(js_isolate, "post", v8::FunctionTemplate::New(js_isolate, js_post));
-        global_templ->Set(js_isolate, "outlet", v8::FunctionTemplate::New(js_isolate, js_outlet, v8::External::New(js_isolate, x)));
+        if (create_context)
+        {
+            v8::Local<v8::ObjectTemplate> global_templ = v8::ObjectTemplate::New(js_isolate);
+            global_templ->SetHandler(v8::NamedPropertyHandlerConfiguration(js_get, js_set, nullptr, nullptr, nullptr, v8::External::New(js_isolate, x)));
+            global_templ->Set(js_isolate, "post", v8::FunctionTemplate::New(js_isolate, js_post));
+            global_templ->Set(js_isolate, "outlet", v8::FunctionTemplate::New(js_isolate, js_outlet, v8::External::New(js_isolate, x)));
+            global_templ->Set(js_isolate, "include", v8::FunctionTemplate::New(js_isolate, js_include, v8::External::New(js_isolate, x)));
 
-        // Create a new context.
-        v8::Local<v8::Context> context = v8::Context::New(js_isolate, nullptr, global_templ);
-        x->context = new v8::Persistent<v8::Context>(js_isolate, context);
+            // Create a new context.
+            context = v8::Context::New(js_isolate, nullptr, global_templ);
+            if (x->context == nullptr)
+                x->context = new v8::Persistent<v8::Context>(js_isolate, context);
+            else
+                x->context->Reset(js_isolate, context);
+        }
+        else
+        {
+            context = x->context->Get(js_isolate);
+        }
 
         // Enter the context for compiling and running the hello world script.
         v8::Context::Scope context_scope(context);
         {
             // Create a string containing the JavaScript source code.
             v8::Local<v8::String> source;
-            const char* path = (x->path).c_str();
 
-            if (!js_readfile(js_isolate, path).ToLocal(&source))
+            if (!js_readfile(js_isolate, path.c_str()).ToLocal(&source))
             {
-                pd_error(&x->x_obj, "Error reading '%s'.", path);
+                pd_error(&x->x_obj, "Error reading '%s'.", path.c_str());
                 return NULL;
             }
 
             // Compile the source code.
             v8::TryCatch trycatch(js_isolate);
             v8::Local<v8::Script> script;
-            v8::Local<v8::String> file_name = v8::String::NewFromUtf8(js_isolate, path, v8::NewStringType::kNormal).ToLocalChecked();
+            v8::Local<v8::String> file_name = v8::String::NewFromUtf8(js_isolate, path.c_str(), v8::NewStringType::kNormal).ToLocalChecked();
             v8::ScriptOrigin origin(file_name);
 
             if (!v8::Script::Compile(context, source, &origin).ToLocal(&script))
             {
-                pd_error(&x->x_obj, "Error compiling '%s':\n%s", path, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
                 return NULL;
             }
 
@@ -393,7 +454,7 @@ static t_js *js_load(t_js* x, const char *script_name = NULL)
             v8::Local<v8::Value> result;
             if (!script->Run(context).ToLocal(&result))
             {
-                pd_error(&x->x_obj, "Error running '%s':\n%s", path, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
                 return NULL;
             }
         }
@@ -407,6 +468,7 @@ static void* js_new(t_symbol* s, int argc, t_atom* argv)
     t_js* x = (t_js*)pd_new(js_class);
     new(x) t_js; // C++ placement new
 
+    x->context = nullptr;
     x->canvas = canvas_getcurrent();
 
     if (argc != 1 || argv[0].a_type != A_SYMBOL)

@@ -1,4 +1,4 @@
-//import { module_function } from 'module.js';
+include("include.js");
 
 inlets = 3;
 outlets = 2;
