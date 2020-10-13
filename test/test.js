@@ -4,6 +4,9 @@ inlets = 3;
 outlets = 2;
 
 post("Hello, world!");
+post("jsarguments", jsarguments);
+cpost("cpost", 1, 2, 3);
+error("error");
 
 function bang() {
     post("Bang on inlet " + inlet);
@@ -31,3 +34,13 @@ function list() {
 function anything() {
     post("anything: " + messagename);
 }
+
+function loadbang() {
+    post("loadbang");
+}
+
+function private() {
+    post("private");
+}
+
+private.private = 1;

@@ -1,4 +1,5 @@
 ﻿#include <m_pd.h>
+#include <g_canvas.h>
 #include <libplatform/libplatform.h>
 #include <v8.h>
 #if WIN32
@@ -28,6 +29,8 @@ typedef struct _js
     vector<_js_inlet*> inlets;
     vector<_outlet*> outlets;
     v8::Persistent<v8::Context>* context;
+    int argc;
+    t_atom* argv;
     int inlet = 0;
     string messagename;
 } t_js;
@@ -117,6 +120,40 @@ static string js_get_exception_msg(v8::Isolate* isolate, v8::TryCatch* try_catch
     return os.str();
 }
 
+static v8::MaybeLocal<v8::Value> js_marshal_atom(t_atom* atom)
+{
+    t_atomtype type = atom->a_type;
+
+    if (type == A_FLOAT)
+    {
+        return v8::Number::New(js_isolate, atom_getfloat(atom));
+    }
+    else if (type == A_SYMBOL)
+    {
+        v8::Local<v8::String> s;
+        if (v8::String::NewFromUtf8(js_isolate, atom_getsymbol(atom)->s_name).ToLocal(&s))
+            return s;
+    }
+
+    return v8::Local<v8::Value>();
+}
+
+static vector<v8::Local<v8::Value>> js_marshal_args(int argc, t_atom* argv)
+{
+    vector<v8::Local<v8::Value>> args;
+
+    for (int i = 0; i < argc; i++)
+    {
+        v8::Local<v8::Value> val;
+        if (js_marshal_atom(&(argv[i])).ToLocal(&val))
+        {
+            args.push_back(val);
+        }
+    }
+
+    return args;
+}
+
 static void js_get(v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -143,6 +180,11 @@ static void js_get(v8::Local<v8::Name> property,
         {
             info.GetReturnValue().Set(messagename);
         }
+    }
+    else if (name == "jsarguments")
+    {
+        vector<v8::Local<v8::Value>> args = js_marshal_args(x->argc, x->argv);
+        info.GetReturnValue().Set(v8::Array::New(js_isolate, args.data(), args.size()));
     }
 }
 
@@ -210,15 +252,57 @@ static void js_post(const v8::FunctionCallbackInfo<v8::Value>& args) {
     v8::Isolate* isolate = args.GetIsolate();
     v8::HandleScope scope(isolate);
 
+    startpost("");
+
     for (int i = 0; i < args.Length(); i++)
     {
         v8::Local<v8::Value> arg = args[i];
         v8::String::Utf8Value value(isolate, arg);
-        if (i == 0) startpost(*value);
-        else poststring(*value);
+        poststring(*value);
     }
 
     endpost();
+}
+
+static void js_cpost(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    if (args.Length() < 1) return;
+
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope scope(isolate);
+
+    string str;
+
+    for (int i = 0; i < args.Length(); i++)
+    {
+        v8::Local<v8::Value> arg = args[i];
+        v8::String::Utf8Value value(isolate, arg);
+        if (i > 0) str.append(" ");
+        str.append(*value);
+    }
+
+    printf("%s\n", str.c_str());
+}
+
+static void js_error(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    if (args.Length() < 1) return;
+
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
+    t_js* x = (t_js*)f->Value();
+
+    string err;
+
+    for (int i = 0; i < args.Length(); i++)
+    {
+        v8::Local<v8::Value> arg = args[i];
+        v8::String::Utf8Value value(isolate, arg);
+        if (i > 0) err.append(" ");
+        err.append(*value);
+    }
+
+    pd_error(x, "%s", err.c_str());
 }
 
 static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* isolate, v8::Local<v8::Context> context)
@@ -467,6 +551,8 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
             v8::Local<v8::ObjectTemplate> global_templ = v8::ObjectTemplate::New(js_isolate);
             global_templ->SetHandler(v8::NamedPropertyHandlerConfiguration(js_get, js_set, nullptr, nullptr, nullptr, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "post", v8::FunctionTemplate::New(js_isolate, js_post));
+            global_templ->Set(js_isolate, "error", v8::FunctionTemplate::New(js_isolate, js_error, v8::External::New(js_isolate, x)));
+            global_templ->Set(js_isolate, "cpost", v8::FunctionTemplate::New(js_isolate, js_cpost));
             global_templ->Set(js_isolate, "outlet", v8::FunctionTemplate::New(js_isolate, js_outlet, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "include", v8::FunctionTemplate::New(js_isolate, js_include, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "messnamed", v8::FunctionTemplate::New(js_isolate, js_messnamed, v8::External::New(js_isolate, x)));
@@ -483,7 +569,7 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
             context = x->context->Get(js_isolate);
         }
 
-        // Enter the context for compiling and running the hello world script.
+        // Enter the context for compiling and running the script.
         v8::Context::Scope context_scope(context);
         {
             // Create a string containing the JavaScript source code.
@@ -520,62 +606,9 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
     return x;
 }
 
-static void* js_new(t_symbol* s, int argc, t_atom* argv)
-{
-    t_js* x = (t_js*)pd_new(js_class);
-    new(x) t_js; // C++ placement new
-
-    x->context = nullptr;
-    x->canvas = canvas_getcurrent();
-
-    if (argc != 1 || argv[0].a_type != A_SYMBOL)
-    {
-        pd_error(&x->x_obj, "Must specify source file.");
-        return NULL;
-    }
-
-    const char* script_name = argv[0].a_w.w_symbol->s_name;
-
-    return js_load(x, script_name);
-}
-
 static void js_free(t_js* x)
 {
     x->~t_js();
-}
-
-static v8::MaybeLocal<v8::Value> js_marshal_atom(t_atom *atom)
-{
-    t_atomtype type = atom->a_type;
-
-    if (type == A_FLOAT)
-    {
-        return v8::Number::New(js_isolate, atom_getfloat(atom));
-    }
-    else if (type == A_SYMBOL)
-    {
-        v8::Local<v8::String> s;
-        if (v8::String::NewFromUtf8(js_isolate, atom_getsymbol(atom)->s_name).ToLocal(&s))
-            return s;
-    }
-
-    return v8::Local<v8::Value>();
-}
-
-static vector<v8::Local<v8::Value>> js_marshal_args(int argc, t_atom* argv)
-{
-    vector<v8::Local<v8::Value>> args;
-
-    for (int i = 0; i < argc; i++)
-    {
-        v8::Local<v8::Value> val;
-        if (js_marshal_atom(&(argv[i])).ToLocal(&val))
-        {
-            args.push_back(val);
-        }
-    }
-
-    return args;
 }
 
 static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
@@ -620,12 +653,60 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
             x->inlet = inlet->index;
             x->messagename = msgname;
 
-            if (!func->Call(context, context->Global(), (int)args.size(), args.data()).ToLocal(&result))
+            v8::Local<v8::String> privateName;
+            v8::Local<v8::Value> privateVal;
+            int32_t isPrivate;
+            if (!v8::String::NewFromUtf8(js_isolate, "private").ToLocal(&privateName)
+                || !func->GetRealNamedProperty(context, privateName).ToLocal(&privateVal)
+                || !privateVal->Int32Value(context).To(&isPrivate)
+                || isPrivate != 1)
             {
-                pd_error(&x->x_obj, "Error calling '%s':\n%s", name, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                if (!func->Call(context, context->Global(), (int)args.size(), args.data()).ToLocal(&result))
+                {
+                    pd_error(&x->x_obj, "Error calling '%s':\n%s", name, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                }
+            }
+            else
+            {
+                pd_error(&x->x_obj, "Function '%s' is private.", name);
             }
         }
     }
+}
+
+static void js_loadbang(t_js* x, t_floatarg action)
+{
+    if (action == LB_LOAD)
+    {
+        t_js_inlet inlet;
+        inlet.index = 0;
+        inlet.owner = x;
+        js_anything(&inlet, gensym("loadbang"), 0, NULL);
+    }
+}
+
+static void* js_new(t_symbol* s, int argc, t_atom* argv)
+{
+    t_js* x = (t_js*)pd_new(js_class);
+    new(x) t_js; // C++ placement new
+
+    x->context = nullptr;
+    x->canvas = canvas_getcurrent();
+    x->argc = argc;
+    x->argv = argv;
+
+    if (argc < 1 || argv[0].a_type != A_SYMBOL)
+    {
+        pd_error(&x->x_obj, "Must specify source file.");
+        return NULL;
+    }
+
+    const char* script_name = argv[0].a_w.w_symbol->s_name;
+
+    if (js_load(x, script_name) == NULL)
+        return NULL;
+
+    return x;
 }
 
 void js_setup(void)
@@ -672,6 +753,7 @@ void js_setup(void)
     js_inlet_class = c;
 
     c = class_new(gensym("js"), (t_newmethod)js_new, (t_method)js_free, sizeof(t_js), CLASS_NOINLET, A_GIMME, 0);
+    class_addmethod(c, (t_method)js_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
 
     js_class = c;
 }
