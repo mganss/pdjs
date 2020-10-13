@@ -1,3 +1,4 @@
 .vs
 /out
 /binaries
+/test/pd-*

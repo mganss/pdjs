@@ -1,0 +1,32 @@
+cpost 1 2 3
+cpost 1 2 3
+ include
+ Hello, world!
+ jsarguments test.js,1234,test
+error: error
+verbose(4): ... you might be able to track this down from the Find menu.
+ loadbang
+ list 3: 1 2 3
+error: Function 'private' is private.
+ foo: 5 'toes'
+ Bang on inlet 1
+0: symbol Hello\,\ world!
+1: bang
+0: 47.11
+0: list x y z 1 2 3
+1: list hallo ballo 12.34
+mess: bang
+ anything: hallo
+ include
+ Hello, world!
+ jsarguments 
+error: error
+ Bang on inlet 0
+0: symbol Hello\,\ world!
+1: bang
+0: 47.11
+0: list x y z 1 2 3
+1: list hallo ballo 12.34
+mess: bang
+ float: 1.5
+ other
