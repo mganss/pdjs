@@ -12,16 +12,26 @@
       "ctestCommandArgs": "",
       "variables": [
         {
-          "name": "CMAKE_INSTALL_PREFIX",
-          "value": "C:/Source/Test/pdjs/out/install/x64-Debug",
-          "type": "PATH"
-        },
-        {
-          "name": "PD_LIBRARY",
-          "value": "C:/Source/Test/pdjs/pd.build/x64/pd.lib",
-          "type": "FILEPATH"
+          "name": "VCPKG_TARGET_TRIPLET",
+          "value": "x64-windows-static",
+          "type": "STRING"
         }
       ]
+    },
+    {
+      "name": "WSL-GCC-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeExecutable": "cmake",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "linux_x64" ],
+      "wslPath": "${defaultWSLPath}",
+      "addressSanitizerRuntimeFlags": "detect_leaks=0",
+      "variables": []
     }
   ]
 }

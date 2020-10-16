@@ -2,3 +2,4 @@
 /out
 /binaries
 /test/pd-*
+/test/result.*.txt

@@ -5,13 +5,11 @@
 #if WIN32
 #include <Windows.h>
 #endif
-#include <direct.h>
 #include <sstream>
 #include <vector>
 #include <map>
 
 using namespace std;
-//using namespace v8;
 
 static t_class* js_class;
 static t_class* js_inlet_class;
@@ -198,49 +196,54 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
     if (name == "inlets")
     {
         int inlets;
-        value->Int32Value(x->context->Get(js_isolate)).To(&inlets);
-        if (x->inlets.size() > inlets)
-        {
-            for (int i = inlets; i < x->inlets.size(); i++)
-            {
-                inlet_free(x->inlets[i]->inlet);
-            }
 
-            x->inlets.resize(inlets);
-        }
-        else if (x->inlets.size() < inlets)
+        if (value->Int32Value(x->context->Get(js_isolate)).To(&inlets))
         {
-            for (auto i = 0; i < inlets; i++)
+            if (x->inlets.size() > inlets)
             {
-                t_js_inlet* inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
-                inlet->pd = js_inlet_class;
-                inlet->owner = x;
-                inlet->index = i;
-                inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
-                x->inlets.push_back(inlet);
+                for (int i = inlets; i < x->inlets.size(); i++)
+                {
+                    inlet_free(x->inlets[i]->inlet);
+                }
+
+                x->inlets.resize(inlets);
+            }
+            else if (x->inlets.size() < inlets)
+            {
+                for (auto i = 0; i < inlets; i++)
+                {
+                    t_js_inlet* inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
+                    inlet->pd = js_inlet_class;
+                    inlet->owner = x;
+                    inlet->index = i;
+                    inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
+                    x->inlets.push_back(inlet);
+                }
             }
         }
     }
     else if (name == "outlets")
     {
         int outlets;
-        value->Int32Value(x->context->Get(js_isolate)).To(&outlets);
 
-        if (x->outlets.size() > outlets)
+        if (value->Int32Value(x->context->Get(js_isolate)).To(&outlets))
         {
-            for (int i = outlets; i < x->outlets.size(); i++)
+            if (x->outlets.size() > outlets)
             {
-                outlet_free(x->outlets[i]);
+                for (int i = outlets; i < x->outlets.size(); i++)
+                {
+                    outlet_free(x->outlets[i]);
+                }
+
+                x->outlets.resize(outlets);
             }
-
-            x->outlets.resize(outlets);
-        }
-        else if (x->outlets.size() < outlets)
-        {
-            for (auto i = 0; i < outlets; i++)
+            else if (x->outlets.size() < outlets)
             {
-                auto outlet = outlet_new(&x->x_obj, 0);
-                x->outlets.push_back(outlet);
+                for (auto i = 0; i < outlets; i++)
+                {
+                    auto outlet = outlet_new(&x->x_obj, 0);
+                    x->outlets.push_back(outlet);
+                }
             }
         }
     }
@@ -472,7 +475,7 @@ static js_file js_getfile(t_js *x, const char* script_name)
 {
     js_file result;
     t_symbol* canvas_dir = canvas_getdir(x->canvas);
-    char dirresult[MAX_PATH];
+    char dirresult[MAXPDSTRING];
     char* nameresult;
     int fd = open_via_path(canvas_dir->s_name, script_name, "", dirresult, &nameresult, sizeof(dirresult), 1);
 
@@ -709,11 +712,11 @@ static void* js_new(t_symbol* s, int argc, t_atom* argv)
     return x;
 }
 
-void js_setup(void)
+extern "C" void js_setup(void)
 {
     t_class* c = NULL;
 
-#if WIN32
+#ifdef WIN32_SHARED
     char js_path[MAX_PATH];
     HMODULE hm = NULL;
 
@@ -731,10 +734,11 @@ void js_setup(void)
         error("GetModuleFileName failed, error = %d\n", ret);
         return;
     }
-#endif
 
     v8::V8::InitializeICUDefaultLocation(js_path);
     v8::V8::InitializeExternalStartupData(js_path);
+#endif
+
     js_platform = v8::platform::NewDefaultPlatform();
     v8::V8::InitializePlatform(js_platform.get());
     v8::V8::Initialize();

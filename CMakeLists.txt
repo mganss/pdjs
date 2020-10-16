@@ -15,19 +15,22 @@ project("pdjs")
 
 message(STATUS "Target: ${VCPKG_TARGET_TRIPLET}")
 
-find_path(V8_INCLUDE_DIR v8.h PATH_SUFFIXES include)
-find_library(V8_LIBRARY v8.dll)
-find_library(V8_LIBPLATFORM_LIBRARY v8_libplatform.dll)
-find_library(V8_LIBBASE_LIBRARY v8_libbase.dll)
-#find_file(SNAPSHOT_BLOB snapshot_blob.bin NO_SYSTEM_ENVIRONMENT_PATH)
+find_package(V8 CONFIG REQUIRED)
 
 set_pd_sources(${PROJECT_SOURCE_DIR}/pure-data/src/)
 set_pd_external_path("${PROJECT_SOURCE_DIR}/binaries/${VCPKG_TARGET_TRIPLET}/")
 
 add_pd_external(pdjs_project js ${PROJECT_SOURCE_DIR}/pdjs/js.cpp)
 
-#set_property(TARGET pdjs_project APPEND_STRING PROPERTY COMPILE_FLAGS "-DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH")
-target_compile_definitions(pdjs_project PRIVATE V8_COMPRESS_POINTERS V8_31BIT_SMIS_ON_64BIT_ARCH)
-target_include_directories(pdjs_project PRIVATE ${V8_INCLUDE_DIR})
-target_link_libraries(pdjs_project ${V8_LIBRARY} ${V8_LIBPLATFORM_LIBRARY} ${V8_LIBBASE_LIBRARY})
-#configure_file(${SNAPSHOT_BLOB} ${PROJECT_BINARY_DIR}/snapshot_blob.bin COPYONLY)
+if(${VCPKG_TARGET_TRIPLET} STREQUAL "x64-windows")
+add_compile_definitions(WIN32_SHARED)
+elseif(${VCPKG_TARGET_TRIPLET} STREQUAL "x64-windows-static")
+set_property(TARGET pdjs_project PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$CONFIG:Debug:Debug>")
+elseif(${VCPKG_TARGET_TRIPLET} STREQUAL "x64-linux")
+endif()
+
+if(V8_SNAPSHOT_BLOB)
+configure_file(${V8_SNAPSHOT_BLOB}> ${PD_OUTPUT_PATH}/snapshot_blob.bin COPYONLY)
+endif()
+
+target_link_libraries(pdjs_project V8::V8)

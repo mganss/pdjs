@@ -1,0 +1,4 @@
+#N canvas 555 294 450 300 12;
+#X declare -path ../binaries/x64-linux;
+#X obj 190 115 test;
+#X obj 21 21 declare -path ../binaries/x64-linux;
