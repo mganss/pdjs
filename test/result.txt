@@ -10,7 +10,7 @@ verbose(4): ... you might be able to track this down from the Find menu.
 error: Function 'private' is private.
  foo: 5 'toes'
  Bang on inlet 1
-0: symbol Hello\, world!
+0: symbol Hello\,\ world!
 1: bang
 0: 47.11
 0: list x y z 1 2 3
@@ -22,7 +22,7 @@ mess: bang
  jsarguments 
 error: error
  Bang on inlet 0
-0: symbol Hello\, world!
+0: symbol Hello\,\ world!
 1: bang
 0: 47.11
 0: list x y z 1 2 3
