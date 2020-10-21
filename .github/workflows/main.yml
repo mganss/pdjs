@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: msys2/setup-msys2@v2
+        
+      - name: Download vcpkg export
+        run: |
+          (New-Object System.Net.WebClient).DownloadFile("https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z", "vcpkg-export.7z")
+          7z x vcpkg-export.7z
+          
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+          md out\build\x64-Release
+          CMake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-Release -S .
+          CMake --build out\build\x64-Release -- -v
+          
+      - name: Test
+        shell: msys2 {0}
+        working-directory: ./test
+        run: ./test.sh
+        
