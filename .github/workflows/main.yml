@@ -1,6 +1,6 @@
 name: CI
 env:
-  VERSION: 1.0.${{ github.run_id }}
+  VERSION: 1.1.${{ github.run_number }}
 
 on:
   push:
@@ -43,6 +43,7 @@ jobs:
           path: binaries/x64-windows-static/js.dll
 
       - name: Create tag
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/github-script@v3
         with:
           github-token: ${{ github.token }}
