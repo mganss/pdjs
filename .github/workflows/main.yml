@@ -1,33 +1,26 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: windows-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
         with:
           submodules: true
-      # Runs a set of commands using the runners shell
+      - uses: msys2/setup-msys2@v2
+        
       - name: Download vcpkg export
         run: |
           (New-Object System.Net.WebClient).DownloadFile("https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z", "vcpkg-export.7z")
           7z x vcpkg-export.7z
+          
       - name: Build
         shell: cmd
         run: |
@@ -35,3 +28,9 @@ jobs:
           md out\build\x64-Release
           CMake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-Release -S .
           CMake --build out\build\x64-Release -- -v
+          
+      - name: Test
+        shell: msys2 {0}
+        working-directory: ./test
+        run: ./test.sh
+        
