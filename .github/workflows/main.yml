@@ -39,7 +39,7 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: dll
+          name: js.dll
           path: binaries/x64-windows-static/js.dll
 
       - name: Create tag
