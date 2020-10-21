@@ -1,4 +1,6 @@
 name: CI
+env:
+  VERSION: 1.0.${{ github.run_id }}
 
 on:
   push:
@@ -34,3 +36,20 @@ jobs:
         working-directory: ./test
         run: ./test.sh
         
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dll
+          path: binaries/x64-windows-static/js.dll
+
+      - name: Create tag
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/v${{env.VERSION}}
+              sha: "${{github.sha}}"
+            })
