@@ -32,5 +32,5 @@ jobs:
         run: |
           call "%vs2019_install%\VC\Auxiliary\Build\vcvars64.bat"
           md out\build\x64-Release
-          CMake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -B out\build\x64-Release -S .
+          CMake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-Release -S .
           CMake --build out\build\x64-Release -- -v
