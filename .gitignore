@@ -3,3 +3,5 @@
 /binaries
 /test/pd-*
 /test/result.*.txt
+/vcpkg-export
+/vcpkg-export.7z
