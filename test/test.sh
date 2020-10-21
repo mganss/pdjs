@@ -2,7 +2,7 @@
 
 if [ "$OS" = "Windows_NT" ]; then
     export TRIPLET="x64-windows-static"
-    pacman -q --noconfirm -S diffutils
+    pacman -q --needed --noconfirm -S diffutils
 elif [ "$OSTYPE" = "linux-gnu" ]; then
     if [ "$HOSTTYPE" = "x86_64" ]; then
         export TRIPLET="x64-linux"
