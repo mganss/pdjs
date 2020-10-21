@@ -26,7 +26,7 @@ jobs:
       - name: Download vcpkg export
         run: |
           (New-Object System.Net.WebClient).DownloadFile("https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z", "vcpkg-export.7z")
-          7z x vcpg-export.7z
+          7z x vcpkg-export.7z
       - name: Build
         shell: cmd
         run: |
