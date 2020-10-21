@@ -13,3 +13,13 @@ export PD="pd/${TRIPLET}/bin/pd"
 . run.sh
 
 diff --strip-trailing-cr result.${TRIPLET}.txt ./result.txt
+
+SUCCESS=$?
+
+if [ "$SUCCESS" = 0 ]; then
+    echo "Test completed successfully."
+else
+    echo "Test failed."
+fi
+
+exit $SUCCESS
