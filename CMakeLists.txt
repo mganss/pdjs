@@ -20,6 +20,15 @@ find_package(V8 CONFIG REQUIRED)
 set_pd_sources(${PROJECT_SOURCE_DIR}/pure-data/src/)
 set_pd_external_path("${PROJECT_SOURCE_DIR}/binaries/${VCPKG_TARGET_TRIPLET}/")
 
+if(${COVERAGE})
+	if(${VCPKG_TARGET_TRIPLET} STREQUAL "x64-linux")
+		add_compile_options(--coverage)
+		add_link_options(--coverage)
+	endif()
+endif()
+
+add_compile_definitions(VERSION=${VERSION})
+
 add_pd_external(pdjs_project js ${PROJECT_SOURCE_DIR}/pdjs/js.cpp)
 
 if(${VCPKG_TARGET_TRIPLET} STREQUAL "x64-windows")

@@ -2,6 +2,7 @@
 #include <g_canvas.h>
 #include <libplatform/libplatform.h>
 #include <v8.h>
+#include <v8-version-string.h>
 #if WIN32
 #include <Windows.h>
 #endif
@@ -760,4 +761,6 @@ extern "C" void js_setup(void)
     class_addmethod(c, (t_method)js_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
 
     js_class = c;
+
+    post("pdjs version " V8_S(VERSION) " (v8 version " V8_VERSION_STRING ")");
 }

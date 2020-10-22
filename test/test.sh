@@ -13,7 +13,10 @@ export PD="pd/${TRIPLET}/bin/pd"
 
 . run.sh
 
-diff --strip-trailing-cr result.${TRIPLET}.txt ./result.txt
+V8_VERSION=`find ../vcpkg*/ -type f -name v8_monolith.pc -exec egrep -o 'Version: [0-9.]+' {} \; | egrep -o '[0-9.]+' | head -n1`
+sed "s/pdjs version.*/pdjs version ${VERSION} (v8 version ${V8_VERSION})/" < ./result.txt > ./expected.txt
+
+diff --strip-trailing-cr result.${TRIPLET}.txt ./expected.txt
 
 SUCCESS=$?
 
