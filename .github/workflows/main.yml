@@ -50,8 +50,7 @@ jobs:
         
       - name: Download vcpkg export
         run: |
-          curl -o vcpkg-export.7z https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z
-          sudo apt install p7zip
+          curl -L -s -o vcpkg-export.7z https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z
           7zr x vcpkg-export.7z
           
       - name: Build
