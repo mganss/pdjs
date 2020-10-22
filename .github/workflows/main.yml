@@ -63,8 +63,7 @@ jobs:
       - name: Test
         working-directory: ./test
         run: |
-          pwd
-          ls -la
+          chmod +x ./pd/x64-linux/bin/pd
           bash ./test.sh
         
       - name: Archive production artifacts
