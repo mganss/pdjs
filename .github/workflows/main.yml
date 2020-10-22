@@ -1,6 +1,7 @@
 name: CI
 env:
   VERSION: 1.1.${{ github.run_number }}
+  VCPKG_EXPORT: https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z
 
 on:
   push:
@@ -19,7 +20,7 @@ jobs:
         
       - name: Download vcpkg export
         run: |
-          (New-Object System.Net.WebClient).DownloadFile("https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z", "vcpkg-export.7z")
+          (New-Object System.Net.WebClient).DownloadFile("${{ env.VCPKG_EXPORT }}", "vcpkg-export.7z")
           7z x vcpkg-export.7z
           
       - name: Build
@@ -27,7 +28,12 @@ jobs:
         run: |
           call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           md out\build\x64-Release
-          CMake -G Ninja -DVERSION=${{ env.VERSION }} -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-Release -S .
+          CMake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
+            -B out\build\x64-Release -S .
           CMake --build out\build\x64-Release -- -v
           
       - name: Test
@@ -50,14 +56,19 @@ jobs:
         
       - name: Download vcpkg export
         run: |
-          curl -L -s -o vcpkg-export.7z https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z
+          curl -L -s -o vcpkg-export.7z ${{ env.VCPKG_EXPORT }}
           7zr x vcpkg-export.7z
           
       - name: Build
         run: |
           sudo apt-get -qy install ninja-build
           mkdir -p out/build/x64-linux-Release
-          cmake -G Ninja -DVERSION=${{ env.VERSION }} -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out/build/x64-linux-Release -S .
+          cmake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
+            -B out/build/x64-linux-Release -S .
           cmake --build out/build/x64-linux-Release -- -v
           
       - name: Test
@@ -66,6 +77,26 @@ jobs:
           chmod +x ./pd/x64-linux/bin/pd
           bash ./test.sh
         
+      - name: Build for coverage analysis
+        run: |
+          mkdir -p out/build/x64-linux-Debug
+          cmake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
+            -DCOVERAGE=ON
+            -B out/build/x64-linux-Debug -S .
+          cmake --build out/build/x64-linux-Debug -- -v
+
+      - name: Generate coverage data
+        working-directory: ./test
+        run: |
+          bash ./test.sh          
+          cd ../out/build/x64-linux-Debug/
+          gcov CMakeFiles/pdjs_project.dir/pdjs/js.cpp.gcno
+          cat js.cpp.gcov
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
