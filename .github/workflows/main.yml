@@ -62,7 +62,7 @@ jobs:
           
       - name: Test
         working-directory: ./test
-        run: ./test.sh
+        run: . test.sh
         
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
