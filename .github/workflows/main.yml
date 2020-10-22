@@ -55,9 +55,9 @@ jobs:
           
       - name: Build
         run: |
-          mkdir -p out\build\x64-linux-Release
-          cmake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-linux-Release -S .
-          cmake --build out\build\x64-linux-Release -- -v
+          mkdir -p out/build/x64-linux-Release
+          cmake -G Ninja -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out/build/x64-linux-Release -S .
+          cmake --build out/build/x64-linux-Release -- -v
           
       - name: Test
         working-directory: ./test
