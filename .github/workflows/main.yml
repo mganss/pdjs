@@ -98,6 +98,13 @@ jobs:
           gcov CMakeFiles/pdjs_project.dir/pdjs/js.cpp.gcno
           cat js.cpp.gcov
 
+      - name: Upload coverage data to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./out/build/x64-linux-Debug/js.cpp.gcov
+          fail_ci_if_error: true
+
   create-tag:
     runs-on: ubuntu-latest
     needs: [ build-windows, build-linux ]
