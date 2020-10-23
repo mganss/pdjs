@@ -44,3 +44,7 @@ function private() {
 }
 
 private.private = 1;
+
+function exception() {
+    throw "exception";
+}

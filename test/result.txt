@@ -7,6 +7,11 @@ pdjs version  (v8 version 8.5.210.20)
 error: error
 verbose(4): ... you might be able to track this down from the Find menu.
  loadbang
+error: Error calling 'exception':
+C:/Source/pdjs/test/test.js:49: exception
+    throw "exception";
+    ^
+
  list 3: 1 2 3
 error: Function 'private' is private.
  foo: 5 'toes'

@@ -5,4 +5,5 @@
 /test/result.*.txt
 /vcpkg-export
 /vcpkg-export.7z
-/test/expected.txt
+/test/expected*.txt
+/test/actual*.txt

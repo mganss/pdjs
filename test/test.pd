@@ -1,16 +1,16 @@
 #N canvas 497 401 767 508 12;
-#X obj 304 223 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X obj 252 224 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
-#X msg 272 222 1.5;
-#X msg 653 218 1 2 3;
-#X msg 506 219 foo 5 toes;
-#X obj 482 220 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+#X msg 220 223 1.5;
+#X msg 604 220 1 2 3;
+#X msg 457 221 foo 5 toes;
+#X obj 433 222 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
 #X obj 329 346 print 0;
 #X obj 406 348 print 1;
-#X msg 391 219 hallo ballo;
-#X msg 329 220 compile;
-#X msg 148 222 compile other.js;
+#X msg 342 221 hallo ballo;
+#X msg 277 221 compile;
+#X msg 96 223 compile other.js;
 #X obj 157 325 r mess;
 #X obj 158 357 print mess;
 #X obj 373 55 t b b;
@@ -21,8 +21,17 @@
 #X obj 478 58 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
 -1;
 #X obj 345 309 js test.js 1234 test;
-#X msg 589 219 private;
-#X obj 397 121 t b b b b b b b b b;
+#X msg 540 221 private;
+#N canvas 208 36 450 300 sub 1;
+#X obj 209 22 inlet;
+#X obj 216 74 t b;
+#X obj 211 202 outlet;
+#X msg 210 126 exception;
+#X connect 0 0 1 0;
+#X connect 1 0 3 0;
+#X connect 3 0 2 0;
+#X restore 654 219 pd sub;
+#X obj 397 121 t b b b b b b b b b b;
 #X connect 0 0 18 0;
 #X connect 1 0 18 0;
 #X connect 2 0 18 2;
@@ -33,20 +42,22 @@
 #X connect 9 0 18 0;
 #X connect 10 0 11 0;
 #X connect 12 0 13 0;
-#X connect 12 1 20 0;
+#X connect 12 1 21 0;
 #X connect 13 0 14 0;
 #X connect 15 0 12 0;
-#X connect 16 0 20 0;
-#X connect 17 0 20 0;
+#X connect 16 0 21 0;
+#X connect 17 0 21 0;
 #X connect 18 0 5 0;
 #X connect 18 1 6 0;
 #X connect 19 0 18 2;
-#X connect 20 0 9 0;
-#X connect 20 1 1 0;
-#X connect 20 2 0 0;
-#X connect 20 3 8 0;
-#X connect 20 4 7 0;
-#X connect 20 5 4 0;
-#X connect 20 6 3 0;
-#X connect 20 7 19 0;
-#X connect 20 8 2 0;
+#X connect 20 0 18 2;
+#X connect 21 0 9 0;
+#X connect 21 1 1 0;
+#X connect 21 2 0 0;
+#X connect 21 3 8 0;
+#X connect 21 4 7 0;
+#X connect 21 5 4 0;
+#X connect 21 6 3 0;
+#X connect 21 7 19 0;
+#X connect 21 8 2 0;
+#X connect 21 9 20 0;
