@@ -211,7 +211,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
             }
             else if (x->inlets.size() < inlets)
             {
-                for (auto i = 0; i < inlets; i++)
+                for (auto i = x->inlets.size(); i < inlets; i++)
                 {
                     t_js_inlet* inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
                     inlet->pd = js_inlet_class;
@@ -240,7 +240,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
             }
             else if (x->outlets.size() < outlets)
             {
-                for (auto i = 0; i < outlets; i++)
+                for (auto i = x->outlets.size(); i < outlets; i++)
                 {
                     auto outlet = outlet_new(&x->x_obj, 0);
                     x->outlets.push_back(outlet);
@@ -256,13 +256,14 @@ static void js_post(const v8::FunctionCallbackInfo<v8::Value>& args) {
     v8::Isolate* isolate = args.GetIsolate();
     v8::HandleScope scope(isolate);
 
-    startpost("");
-
     for (int i = 0; i < args.Length(); i++)
     {
         v8::Local<v8::Value> arg = args[i];
         v8::String::Utf8Value value(isolate, arg);
-        poststring(*value);
+        if (i == 0)
+            startpost("%s", *value);
+        else
+            poststring(*value);
     }
 
     endpost();

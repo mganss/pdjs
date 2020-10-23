@@ -7,6 +7,7 @@ post("Hello, world!");
 post("jsarguments", jsarguments);
 cpost("cpost", 1, 2, 3);
 error("error");
+post(`inlets: ${inlets} outlets: ${outlets}`);
 
 function bang() {
     post("Bang on inlet " + inlet);
@@ -16,6 +17,9 @@ function bang() {
     outlet(0, ["x", "y", "z", 1, 2, 3]);
     outlet(1, "hallo", "ballo", 12.34);
     messnamed("mess", "bang");
+    messnamed("mess", 3.14);
+    messnamed("mess", "test");
+    messnamed("mess", "test", [1, 2, 3], 4);
 }
 
 function msg_float(f) {

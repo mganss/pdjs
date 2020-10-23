@@ -22,7 +22,7 @@
 -1;
 #X obj 345 309 js test.js 1234 test;
 #X msg 540 221 private;
-#N canvas 208 36 450 300 sub 1;
+#N canvas 208 36 450 300 sub 0;
 #X obj 209 22 inlet;
 #X obj 216 74 t b;
 #X obj 211 202 outlet;
@@ -32,6 +32,10 @@
 #X connect 3 0 2 0;
 #X restore 654 219 pd sub;
 #X obj 397 121 t b b b b b b b b b b;
+#X obj 552 311 js hjgjhgfjkh.js;
+#X obj 554 340 js compile_error.js;
+#X obj 554 370 js run_error.js;
+#X obj 555 397 js;
 #X connect 0 0 18 0;
 #X connect 1 0 18 0;
 #X connect 2 0 18 2;

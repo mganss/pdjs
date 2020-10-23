@@ -72,6 +72,12 @@ jobs:
           chmod +x ./pd/x64-linux/bin/pd
           bash ./test.sh
 
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: js.pd_linux
+          path: binaries/x64-linux/js.pd_linux
+
       - name: Build for coverage analysis
         run: |
           mkdir -p out/build/x64-linux-Debug
@@ -91,12 +97,6 @@ jobs:
           cd ../out/build/x64-linux-Debug/
           gcov CMakeFiles/pdjs_project.dir/pdjs/js.cpp.gcno
           cat js.cpp.gcov
-
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: js.pd_linux
-          path: binaries/x64-linux/js.pd_linux
 
   create-tag:
     runs-on: ubuntu-latest
