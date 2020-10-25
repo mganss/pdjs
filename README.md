@@ -24,7 +24,7 @@ Planned:
 ## Usage
 
 Currently, you'll have to grab a build artifact from [GitHub Actions](https://github.com/mganss/pdjs/actions) for your platform (`js.ps_linux` for Linux, `js.dll` for Windows)
-and place it where your PD patch can find it. Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute.
+and place it where your PD patch can find it. Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute. For more usage information you can consult the [Max JavaScript documentation](https://docs.cycling74.com/max8/vignettes/javascriptinmax) which applies to pdjs as well.
 
 ## Feature support
 
@@ -61,8 +61,46 @@ There is no built-in editor like in Max, source files have to be created and edi
 - [ ] `msg_int`
 - [x] `msg_float`
 - [x] `list`
+- [x] `anything`
 - [x] `loadbang`
 - [ ] `getvalueof`
 - [ ] `setvalueof`
 - [ ] `save`
 - [ ] `notifydeleted`
+
+Private functions are supported.
+
+### [Global functions](https://docs.cycling74.com/max8/vignettes/jsglobal)
+
+- [x] `cpost`
+- [x] `error`
+- [x] `include` (no support for object argument)
+- [x] `messnamed`
+- [x] `post`
+- [ ] `require`
+- [ ] `arrayfromargs` (use `Array.from(arguments)` or `[...arguments]` instead)
+- [ ] `assist`
+- [ ] `declareattribute`
+- [ ] `embedmessage`
+- [ ] `notifyclients`
+- [x] `outlet` (no support for `jsobject`)
+- [ ] `setinletassist`
+- [ ] `setoutletassist`
+
+### Global properties
+
+- [ ] `autowatch`
+- [ ] `editfontsize`
+- [x] `inlet`
+- [x] `inlets`
+- [ ] `inspector`
+- [x] `jsarguments` (no support for `jsargs` message)
+- [ ] `Max`
+- [ ] `maxclass`
+- [x] `messagename`
+- [ ] `patcher`
+- [x] `outlets`
+
+### Other Objects
+
+There is no support currently for other objects such as `Buffer`, `Dict`, `File`, etc.
