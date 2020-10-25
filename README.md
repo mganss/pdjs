@@ -104,3 +104,42 @@ Private functions are supported.
 ### Other Objects
 
 There is no support currently for other objects such as `Buffer`, `Dict`, `File`, etc.
+
+## Building
+
+pdjs uses CMake to build. The V8 library is pulled in through [vcpkg](https://github.com/microsoft/vcpkg) and [pd.build](https://github.com/pierreguillot/pd.build) is used to build the external library.
+
+### Prerequisites
+
+- Windows: Visual Studio 2019 (any edition, older versions may work, though not tested). You need to have the [Desktop development with C++](https://docs.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio?view=vs-2019) workload installed. If you want to build the Linux external from VS you'll also need the workload [Linux development with C++](https://docs.microsoft.com/en-us/cpp/linux/download-install-and-setup-the-linux-development-workload?view=vs-2019). 
+
+- Linux: 
+  - g++
+  - cmake 3.14 or higher (if your distro has an older version, you can grab a static build from https://github.com/Microsoft/CMake/releases)
+  - ninja-build
+ 
+### Installing the V8 package
+
+vcpkg is used as a git submodule, so you can drop into a command line and [bootstrap vcpkg](https://github.com/microsoft/vcpkg#getting-started)
+in the vcpkg subdirectory after cloning this repo. Then, either do `vcpkg install v8:x64-windows-static` or `vcpkg install v8:x64-linux` and grab a coffee.
+
+### Building
+
+Also check out the GitHub Actions [workflow definition](https://github.com/mganss/pdjs/blob/master/.github/workflows/main.yml) for more details on the build process. The GitHub Actions build doesn't use the V8 vcpkg from source but rather a pre-built export that only has the release binaries.
+
+#### Windows
+
+Open the top-level directory of the repo in VS and hit F6. The CMakeSettings.json contains 4 configurations: `x64-Debug` and `x64-Release` for Windows builds and `WSL-GCC-Debug` and `WSL-GCC-Release` for Linux builds through WSL.
+
+#### Linux
+
+```sh
+mkdir -p out/build/x64-linux-Debug
+cmake -G Ninja \
+  -DVERSION=1.0 \
+  -DVCPKG_TARGET_TRIPLET=x64-linux \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
+  -B out/build/x64-linux-Debug -S .
+cmake --build out/build/x64-linux-Debug -- -v
+```
