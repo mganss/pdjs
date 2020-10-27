@@ -56,7 +56,7 @@ static v8::MaybeLocal<v8::String> js_readfile(v8::Isolate* isolate, const char *
     fseek(file, 0, SEEK_END);
     size_t size = ftell(file);
     rewind(file);
-    std::unique_ptr<char> chars(new char[size + 1]);
+    auto chars = std::make_unique<char[]>(size + 1);
     chars.get()[size] = '\0';
     for (size_t i = 0; i < size;) {
         i += fread(&chars.get()[i], 1, size - i, file);
@@ -71,7 +71,7 @@ static v8::MaybeLocal<v8::String> js_readfile(v8::Isolate* isolate, const char *
     return result;
 }
 
-static string js_get_exception_msg(v8::Isolate* isolate, v8::TryCatch* try_catch) {
+static string js_get_exception_msg(v8::Isolate* isolate, const v8::TryCatch* try_catch) {
     v8::HandleScope handle_scope(isolate);
     v8::String::Utf8Value exception(isolate, try_catch->Exception());
     const char* exception_string = *exception;
@@ -108,17 +108,18 @@ static string js_get_exception_msg(v8::Isolate* isolate, v8::TryCatch* try_catch
         v8::Local<v8::Value> stack_trace_string;
         if (try_catch->StackTrace(context).ToLocal(&stack_trace_string) &&
             stack_trace_string->IsString() &&
-            v8::Local<v8::String>::Cast(stack_trace_string)->Length() > 0) {
+            v8::Local<v8::String>::Cast(stack_trace_string)->Length() > 0)
+        {
             v8::String::Utf8Value stack_trace(isolate, stack_trace_string);
-            const char* stack_trace_string = *stack_trace;
-            os << stack_trace_string << "\n";
+            const char* stack_trace_str = *stack_trace;
+            os << stack_trace_str << "\n";
         }
     }
 
     return os.str();
 }
 
-static v8::MaybeLocal<v8::Value> js_marshal_atom(t_atom* atom)
+static v8::MaybeLocal<v8::Value> js_marshal_atom(const t_atom* atom)
 {
     t_atomtype type = atom->a_type;
 
@@ -156,7 +157,7 @@ static void js_get(v8::Local<v8::Name> property,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(info.Data());
-    t_js* x = (t_js*)f->Value();
+    auto x = (t_js*)f->Value();
     auto name = js_object_to_string(js_isolate, property);
 
     if (name == "inlets")
@@ -190,7 +191,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(info.Data());
-    t_js* x = (t_js*)f->Value();
+    auto x = (t_js*)f->Value();
     auto name = js_object_to_string(js_isolate, property);
 
     if (name == "inlets")
@@ -214,7 +215,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
             {
                 for (auto i = x->inlets.size(); i < inlets; i++)
                 {
-                    t_js_inlet* inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
+                    auto inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
                     inlet->pd = js_inlet_class;
                     inlet->owner = x;
                     inlet->index = (int)i;
@@ -296,9 +297,8 @@ static void js_error(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
     v8::Isolate* isolate = args.GetIsolate();
     v8::HandleScope scope(isolate);
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
-    t_js* x = (t_js*)f->Value();
+    const t_js* x = (t_js*)f->Value();
 
     string err;
 
@@ -397,7 +397,7 @@ static void js_outlet_args(_outlet* outlet, vector<v8::Local<v8::Value>> args)
         argv.insert(argv.end(), uma.begin(), uma.end());
     }
 
-    if (argv.size() > 0)
+    if (!argv.empty())
     {
         outlet_list(outlet, &s_list, (int)argv.size(), argv.data());
     }
@@ -411,26 +411,24 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::HandleScope scope(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
-    t_js* x = (t_js*)f->Value();
+    auto x = (t_js*)f->Value();
     int32_t outlet_num;
 
-    if (args[0]->Int32Value(context).To(&outlet_num))
+    if (args[0]->Int32Value(context).To(&outlet_num)
+        && outlet_num < x->outlets.size())
     {
-        if (outlet_num < x->outlets.size())
+        _outlet* outlet = x->outlets[outlet_num];
+        vector<v8::Local<v8::Value>> argv;
+
+        for (int i = 1; i < args.Length(); i++)
         {
-            _outlet* outlet = x->outlets[outlet_num];
-            vector<v8::Local<v8::Value>> argv;
+            v8::Local<v8::Value> arg = args[i];
+            argv.push_back(arg);
+        }
 
-            for (int i = 1; i < args.Length(); i++)
-            {
-                v8::Local<v8::Value> arg = args[i];
-                argv.push_back(arg);
-            }
-
-            if (argv.size() > 0)
-            {
-                js_outlet_args(outlet, argv);
-            }
+        if (!argv.empty())
+        {
+            js_outlet_args(outlet, argv);
         }
     }
 }
@@ -443,7 +441,6 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::HandleScope scope(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
-    t_js* x = (t_js*)f->Value();
     v8::Local<v8::String> symbolString;
 
     if (args[0]->ToString(context).ToLocal(&symbolString))
@@ -462,9 +459,9 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
                 argv.insert(argv.end(), uma.begin(), uma.end());
             }
 
-            if (argv.size() > 0)
+            if (!argv.empty())
             {
-                t_symbol *type;
+                t_symbol *type = NULL;
 
                 if (argv.size() == 1)
                 {
@@ -485,7 +482,8 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
                     type = &s_list;
                 }
 
-                pd_typedmess(sym->s_thing, type, (int)argv.size(), argv.data());
+                if (type != NULL)
+                    pd_typedmess(sym->s_thing, type, (int)argv.size(), argv.data());
             }
         }
     }
@@ -497,10 +495,10 @@ struct js_file
     string dir;
 };
 
-static js_file js_getfile(t_js *x, const char* script_name)
+static js_file js_getfile(const t_js *x, const char* script_name)
 {
     js_file result;
-    t_symbol* canvas_dir = canvas_getdir(x->canvas);
+    const t_symbol* canvas_dir = canvas_getdir(x->canvas);
     char dirresult[MAXPDSTRING];
     char* nameresult;
     int fd = open_via_path(canvas_dir->s_name, script_name, "", dirresult, &nameresult, sizeof(dirresult), 1);
@@ -521,7 +519,7 @@ static js_file js_getfile(t_js *x, const char* script_name)
     return result;
 }
 
-static t_js* js_load(t_js* x, const char* script_name, bool create_context, v8::Local<v8::Object>* global);
+static t_js* js_load(t_js* x, const char* script_name, bool create_context, const v8::Local<v8::Object>* global);
 
 static void js_include(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -529,9 +527,8 @@ static void js_include(const v8::FunctionCallbackInfo<v8::Value>& args)
 
     v8::Isolate* isolate = args.GetIsolate();
     v8::HandleScope scope(isolate);
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
-    t_js* x = (t_js*)f->Value();
+    auto x = (t_js*)f->Value();
 
     if (args.Length() > 0 && args[0]->IsString())
     {
@@ -549,7 +546,7 @@ static void js_require(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::EscapableHandleScope scope(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
-    t_js* x = (t_js*)f->Value();
+    auto x = (t_js*)f->Value();
 
     if (args.Length() > 0 && args[0]->IsString())
     {
@@ -572,7 +569,7 @@ static void js_require(const v8::FunctionCallbackInfo<v8::Value>& args)
     args.GetReturnValue().SetUndefined();
 }
 
-static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_context = true, v8::Local<v8::Object> *global = NULL)
+static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_context = true, const v8::Local<v8::Object> *global = NULL)
 {
     string path;
 
@@ -686,11 +683,11 @@ static void js_free(t_js* x)
     x->~t_js();
 }
 
-static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
+static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, t_atom* argv)
 {
     const char* name = s == &s_float ? "msg_float" : s->s_name;
     string msgname = string(name);
-    t_js* x = inlet->owner;
+    auto x = inlet->owner;
     v8::HandleScope handle_scope(js_isolate);
     auto context = x->context->Get(js_isolate);
     v8::Context::Scope context_scope(context);
@@ -736,14 +733,12 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
         {
             v8::Local<v8::Value> val;
 
-            if (context->Global()->Get(context, propName).ToLocal(&val) && !val->IsUndefined())
+            if (context->Global()->Get(context, propName).ToLocal(&val) && !val->IsUndefined()
+                && !x->outlets.empty())
             {
-                if (x->outlets.size() > 0)
-                {
-                    vector<v8::Local<v8::Value>> args;
-                    args.push_back(val);
-                    js_outlet_args(x->outlets[0], args);
-                }
+                vector<v8::Local<v8::Value>> args;
+                args.push_back(val);
+                js_outlet_args(x->outlets[0], args);
             }
         }
     }
@@ -751,11 +746,9 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
     {
         v8::Local<v8::Value> propName;
 
-        if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
-        {
-            if (!context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName)).IsNothing())
+        if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName()
+            && !context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName)).IsNothing())
                 return;
-        }
     }
     else
     {
@@ -772,7 +765,6 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
             if (hasFunc)
             {
                 v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(funcVal);
-                v8::Context::Scope context_scope(context);
                 v8::TryCatch trycatch(js_isolate);
                 v8::Local<v8::Value> result;
                 vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv);
@@ -812,9 +804,9 @@ static void js_loadbang(t_js* x, t_floatarg action)
     }
 }
 
-static void* js_new(t_symbol* s, int argc, t_atom* argv)
+static t_js* js_new(const t_symbol*, int argc, t_atom* argv)
 {
-    t_js* x = (t_js*)pd_new(js_class);
+    auto x = (t_js*)pd_new(js_class);
     new(x) t_js; // C++ placement new
 
     x->context = nullptr;
