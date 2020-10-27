@@ -104,6 +104,34 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./out/build/x64-linux-Debug/js.cpp.gcov
           fail_ci_if_error: true
+      
+      - name: SonarCloud
+        env:
+          SONAR_VERSION: 4.4.0.2170
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          curl -L -s -o build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+          curl -L -s -o sonar-scanner-cli-linux.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_VERSION }}-linux.zip
+          unzip sonar-scanner-cli-linux.zip
+          export PATH="${PWD}/sonar-scanner-${{ env.SONAR_VERSION }}-linux/bin:${PWD}/build-wrapper-linux-x86:${PATH}"
+          cmake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DVCPKG_TARGET_TRIPLET=x64-linux \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
+            -DCOVERAGE=OFF \
+            -B out/build/x64-linux-Debug -S .
+          cmake --build out/build/x64-linux-Debug --target clean -- -v
+          build-wrapper-linux-x86-64 --out-dir bw-output cmake --build out/build/x64-linux-Debug -- -v
+          sonar-scanner \
+            -Dsonar.organization=mganss-github \
+            -Dsonar.projectKey=mganss_pdjs \
+            -Dsonar.sources=./pdjs \
+            -Dsonar.cfamily.build-wrapper-output=bw-output \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.projectVersion=${{ env.VERSION }} \
+            -Dsonar.cfamily.gcov.reportsPath=out/build/x64-linux-Debug
 
   create-tag:
     runs-on: ubuntu-latest
