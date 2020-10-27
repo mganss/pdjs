@@ -200,6 +200,8 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
 
         if (value->Int32Value(x->context->Get(js_isolate)).To(&inlets))
         {
+            if (inlets < 1) inlets = 1;
+
             if (x->inlets.size() > inlets)
             {
                 for (int i = inlets; i < x->inlets.size(); i++)
@@ -216,7 +218,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
                     t_js_inlet* inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
                     inlet->pd = js_inlet_class;
                     inlet->owner = x;
-                    inlet->index = i;
+                    inlet->index = (int)i;
                     inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
                     x->inlets.push_back(inlet);
                 }
@@ -229,6 +231,8 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
 
         if (value->Int32Value(x->context->Get(js_isolate)).To(&outlets))
         {
+            if (outlets < 0) outlets = 0;
+
             if (x->outlets.size() > outlets)
             {
                 for (int i = outlets; i < x->outlets.size(); i++)
@@ -348,6 +352,58 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
     return args;
 }
 
+static void js_outlet_args(_outlet* outlet, vector<v8::Local<v8::Value>> args)
+{
+    v8::Isolate* isolate = js_isolate;
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+    if (args.size() == 1)
+    {
+        v8::Local<v8::Value> arg = args[0];
+
+        if (arg->IsNumber())
+        {
+            double num;
+
+            if (arg->NumberValue(context).To(&num))
+            {
+                outlet_float(outlet, (t_float)num);
+            }
+
+            return;
+        }
+        else if (!arg->IsArray())
+        {
+            auto s = js_object_to_string(isolate, arg);
+
+            if (s == "bang")
+            {
+                outlet_bang(outlet);
+            }
+            else
+            {
+                outlet_symbol(outlet, gensym(s.c_str()));
+            }
+
+            return;
+        }
+    }
+
+    vector<t_atom> argv;
+
+    for (int i = 0; i < args.size(); i++)
+    {
+        v8::Local<v8::Value> arg = args[i];
+        auto uma = js_unmarshal_arg(arg, isolate, context);
+        argv.insert(argv.end(), uma.begin(), uma.end());
+    }
+
+    if (argv.size() > 0)
+    {
+        outlet_list(outlet, &s_list, (int)argv.size(), argv.data());
+    }
+}
+
 static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     if (args.Length() < 1) return;
@@ -364,48 +420,17 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
         if (outlet_num < x->outlets.size())
         {
             _outlet* outlet = x->outlets[outlet_num];
-
-            if (args.Length() == 2)
-            {
-                v8::Local<v8::Value> arg = args[1];
-                if (arg->IsNumber())
-                {
-                    double num;
-                    if (arg->NumberValue(context).To(&num))
-                    {
-                        outlet_float(outlet, (t_float)num);
-                        return;
-                    }
-                }
-                else if (!arg->IsArray())
-                {
-                    auto s = js_object_to_string(isolate, arg);
-
-                    if (s == "bang")
-                    {
-                        outlet_bang(outlet);
-                        return;
-                    }
-                    else
-                    {
-                        outlet_symbol(outlet, gensym(s.c_str()));
-                        return;
-                    }
-                }
-            }
-
-            vector<t_atom> argv;
+            vector<v8::Local<v8::Value>> argv;
 
             for (int i = 1; i < args.Length(); i++)
             {
                 v8::Local<v8::Value> arg = args[i];
-                auto uma = js_unmarshal_arg(arg, isolate, context);
-                argv.insert(argv.end(), uma.begin(), uma.end());
+                argv.push_back(arg);
             }
 
             if (argv.size() > 0)
             {
-                outlet_list(outlet, &s_list, (int)argv.size(), argv.data());
+                js_outlet_args(outlet, argv);
             }
         }
     }
@@ -497,7 +522,7 @@ static js_file js_getfile(t_js *x, const char* script_name)
     return result;
 }
 
-static t_js* js_load(t_js* x, const char* script_name, bool create_context);
+static t_js* js_load(t_js* x, const char* script_name, bool create_context, v8::Local<v8::Object>* global);
 
 static void js_include(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
@@ -509,17 +534,47 @@ static void js_include(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
     t_js* x = (t_js*)f->Value();
 
-    for (int i = 0; i < args.Length(); i++)
+    if (args.Length() > 0 && args[0]->IsString())
     {
-        if (args[i]->IsString())
-        {
-            auto script_name = js_object_to_string(isolate, args[i]);
-            js_load(x, script_name.c_str(), false);
-        }
+        auto script_name = js_object_to_string(isolate, args[0]);
+        v8::Local<v8::Object> global;
+        if (args.Length() > 1 && args[1]->IsObject())
+            global = v8::Local<v8::Object>::Cast(args[1]);
+        js_load(x, script_name.c_str(), false, (global.IsEmpty() ? NULL : &global));
     }
 }
 
-static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_context = true)
+static void js_require(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    v8::Isolate* isolate = args.GetIsolate();
+    v8::EscapableHandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
+    t_js* x = (t_js*)f->Value();
+
+    if (args.Length() > 0 && args[0]->IsString())
+    {
+        // pass { exports: {} };
+        auto script_name = js_object_to_string(isolate, args[0]);
+        v8::Local<v8::Object> o = v8::Object::New(isolate);
+        auto exportsKey = v8::String::NewFromUtf8Literal(isolate, "exports");
+        o->Set(context, exportsKey, v8::Object::New(isolate));
+
+        if (js_load(x, script_name.c_str(), false, &o) != NULL)
+        {
+            v8::Local<v8::Value> exports;
+            if (o->Get(context, exportsKey).ToLocal(&exports))
+            {
+                args.GetReturnValue().Set(scope.Escape(exports));
+                return;
+            }
+        }
+    }
+
+    args.GetReturnValue().SetUndefined();
+}
+
+static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_context = true, v8::Local<v8::Object> *global = NULL)
 {
     string path;
 
@@ -543,11 +598,9 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
         path = x->path;
     }
 
-    // Initialize V8.
     {
         v8::Isolate::Scope isolate_scope(js_isolate);
 
-        // Create a stack-allocated handle scope.
         v8::HandleScope handle_scope(js_isolate);
         v8::Local<v8::Context> context;
 
@@ -560,9 +613,9 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
             global_templ->Set(js_isolate, "cpost", v8::FunctionTemplate::New(js_isolate, js_cpost));
             global_templ->Set(js_isolate, "outlet", v8::FunctionTemplate::New(js_isolate, js_outlet, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "include", v8::FunctionTemplate::New(js_isolate, js_include, v8::External::New(js_isolate, x)));
+            global_templ->Set(js_isolate, "require", v8::FunctionTemplate::New(js_isolate, js_require, v8::External::New(js_isolate, x)));
             global_templ->Set(js_isolate, "messnamed", v8::FunctionTemplate::New(js_isolate, js_messnamed, v8::External::New(js_isolate, x)));
 
-            // Create a new context.
             context = v8::Context::New(js_isolate, nullptr, global_templ);
             if (x->context == nullptr)
                 x->context = new v8::Persistent<v8::Context>(js_isolate, context);
@@ -574,10 +627,8 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
             context = x->context->Get(js_isolate);
         }
 
-        // Enter the context for compiling and running the script.
         v8::Context::Scope context_scope(context);
         {
-            // Create a string containing the JavaScript source code.
             v8::Local<v8::String> source;
 
             if (!js_readfile(js_isolate, path.c_str()).ToLocal(&source))
@@ -586,24 +637,45 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
                 return NULL;
             }
 
-            // Compile the source code.
             v8::TryCatch trycatch(js_isolate);
-            v8::Local<v8::Script> script;
             v8::Local<v8::String> file_name = v8::String::NewFromUtf8(js_isolate, path.c_str(), v8::NewStringType::kNormal).ToLocalChecked();
             v8::ScriptOrigin origin(file_name);
 
-            if (!v8::Script::Compile(context, source, &origin).ToLocal(&script))
+            if (global == NULL)
             {
-                pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                return NULL;
-            }
+                v8::Local<v8::Script> script;
 
-            // Run the script to get the result.
-            v8::Local<v8::Value> result;
-            if (!script->Run(context).ToLocal(&result))
+                if (!v8::Script::Compile(context, source, &origin).ToLocal(&script))
+                {
+                    pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    return NULL;
+                }
+
+                v8::Local<v8::Value> result;
+                if (!script->Run(context).ToLocal(&result))
+                {
+                    pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    return NULL;
+                }
+            }
+            else
             {
-                pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                return NULL;
+                v8::Local<v8::Function> function;
+                v8::ScriptCompiler::Source src(source, origin);
+                v8::Local<v8::Object> args[] = { *global };
+
+                if (!v8::ScriptCompiler::CompileFunctionInContext(context, &src, 0, NULL, 1, args).ToLocal(&function))
+                {
+                    pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    return NULL;
+                }
+
+                v8::Local<v8::Value> result;
+                if (!function->Call(context, *global, 0, NULL).ToLocal(&result))
+                {
+                    pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    return NULL;
+                }
             }
         }
     }
@@ -621,8 +693,9 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
     const char* name = s == &s_float ? "msg_float" : s->s_name;
     string msgname = string(name);
     t_js* x = inlet->owner;
+    v8::HandleScope handle_scope(js_isolate);
 
-    if (inlet->index == 0 && msgname == "compile")
+    if (msgname == "compile")
     {
         if (argc > 0 && argv[0].a_type == A_SYMBOL)
         {
@@ -632,48 +705,100 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
         {
             js_load(x);
         }
-
-        return;
     }
-
-    v8::HandleScope handle_scope(js_isolate);
-    v8::Local<v8::String> funcName;
-
-    if (v8::String::NewFromUtf8(js_isolate, name).ToLocal(&funcName))
+    else if (msgname == "setprop")
     {
-        v8::Local<v8::Value> funcVal;
-        auto context = x->context->Get(js_isolate);
-        auto hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
+        v8::Local<v8::Value> propName;
 
-        if (!hasFunc && v8::String::NewFromUtf8(js_isolate, "anything").ToLocal(&funcName))
-            hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
-
-        if (hasFunc)
+        if (argc > 1 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
-            v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(funcVal);
-            v8::Context::Scope context_scope(context);
-            v8::TryCatch trycatch(js_isolate);
-            v8::Local<v8::Value> result;
-            vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv);
-            x->inlet = inlet->index;
-            x->messagename = msgname;
+            auto context = x->context->Get(js_isolate);
+            vector<v8::Local<v8::Value>> args = js_marshal_args(argc - 1, &argv[1]);
+            v8::Local<v8::Value> val;
 
-            v8::Local<v8::String> privateName;
-            v8::Local<v8::Value> privateVal;
-            int32_t isPrivate;
-            if (!v8::String::NewFromUtf8(js_isolate, "private").ToLocal(&privateName)
-                || !func->GetRealNamedProperty(context, privateName).ToLocal(&privateVal)
-                || !privateVal->Int32Value(context).To(&isPrivate)
-                || isPrivate != 1)
+            if (args.size() > 1)
+                val = v8::Array::New(js_isolate, args.data(), args.size());
+            else
+                val = args[0];
+
+            bool result;
+
+            if (!context->Global()->Set(context, propName, val).To(&result))
             {
-                if (!func->Call(context, context->Global(), (int)args.size(), args.data()).ToLocal(&result))
+                pd_error(&x->x_obj, "Error setting property '%s'.", js_object_to_string(js_isolate, propName).c_str());
+            }
+        }
+    }
+    else if (msgname == "getprop")
+    {
+        v8::Local<v8::Value> propName;
+
+        if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
+        {
+            auto context = x->context->Get(js_isolate);
+            v8::Local<v8::Value> val;
+
+            if (context->Global()->Get(context, propName).ToLocal(&val) && !val->IsUndefined())
+            {
+                if (x->outlets.size() > 0)
                 {
-                    pd_error(&x->x_obj, "Error calling '%s':\n%s", name, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    vector<v8::Local<v8::Value>> args;
+                    args.push_back(val);
+                    js_outlet_args(x->outlets[0], args);
                 }
             }
-            else
+        }
+    }
+    else if (msgname == "delprop")
+    {
+        v8::Local<v8::Value> propName;
+
+        if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
+        {
+            auto context = x->context->Get(js_isolate);
+            context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName));
+        }
+    }
+    else
+    {
+        v8::Local<v8::String> funcName;
+
+        if (v8::String::NewFromUtf8(js_isolate, name).ToLocal(&funcName))
+        {
+            v8::Local<v8::Value> funcVal;
+            auto context = x->context->Get(js_isolate);
+            auto hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
+
+            if (!hasFunc && v8::String::NewFromUtf8(js_isolate, "anything").ToLocal(&funcName))
+                hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
+
+            if (hasFunc)
             {
-                pd_error(&x->x_obj, "Function '%s' is private.", name);
+                v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(funcVal);
+                v8::Context::Scope context_scope(context);
+                v8::TryCatch trycatch(js_isolate);
+                v8::Local<v8::Value> result;
+                vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv);
+                x->inlet = inlet->index;
+                x->messagename = msgname;
+
+                v8::Local<v8::String> privateName;
+                v8::Local<v8::Value> privateVal;
+                int32_t isPrivate;
+                if (!v8::String::NewFromUtf8(js_isolate, "private").ToLocal(&privateName)
+                    || !func->GetRealNamedProperty(context, privateName).ToLocal(&privateVal)
+                    || !privateVal->Int32Value(context).To(&isPrivate)
+                    || isPrivate != 1)
+                {
+                    if (!func->Call(context, context->Global(), (int)args.size(), args.data()).ToLocal(&result))
+                    {
+                        pd_error(&x->x_obj, "Error calling '%s':\n%s", name, js_get_exception_msg(js_isolate, &trycatch).c_str());
+                    }
+                }
+                else
+                {
+                    pd_error(&x->x_obj, "Function '%s' is private.", name);
+                }
             }
         }
     }

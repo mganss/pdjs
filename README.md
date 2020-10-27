@@ -47,12 +47,12 @@ There is no built-in editor like in Max, source files have to be created and edi
 - [x] `anything`
 - [ ] `autowatch`
 - [x] `compile`
-- [ ] `delprop`
+- [x] `delprop`
 - [ ] `editfontsize`
-- [ ] `getprop`
+- [x] `getprop`
 - [x] `loadbang`
 - [ ] `open`
-- [ ] `setprop`
+- [x] `setprop`
 - [ ] `statemessage`
 - [ ] `wclose`
 
@@ -74,10 +74,10 @@ Private functions are supported.
 
 - [x] `cpost`
 - [x] `error`
-- [x] `include` (no support for object argument)
+- [x] `include`
 - [x] `messnamed`
 - [x] `post`
-- [ ] `require`
+- [x] `require`
 - [ ] `arrayfromargs` (use `Array.from(arguments)` or `[...arguments]` instead)
 - [ ] `assist`
 - [ ] `declareattribute`

@@ -2,6 +2,14 @@ cpost 1 2 3
 cpost 1 2 3
 pdjs version  (v8 version 8.5.210.20)
 include
+include x 1
+include this.x 1
+include y y
+include this.y undefined
+o.x 4
+x 2
+require bar
+require foo 37
 Hello, world!
 jsarguments test.js,1234,test
 error: error
@@ -10,20 +18,20 @@ inlets: 3 outlets: 2
 error: Script file 'hjgjhgfjkh.js' not found.
  js hjgjhgfjkh.js
 error: ... couldn't create
-error: Error compiling '/pdjs/test/compile_error.js':
-/pdjs/test/compile_error.js:1: SyntaxError: Unexpected end of input
+error: Error compiling 'C:/Source/pdjs/test/compile_error.js':
+C:/Source/pdjs/test/compile_error.js:1: SyntaxError: Unexpected end of input
 (
  
 SyntaxError: Unexpected end of input
 
  js compile_error.js
 error: ... couldn't create
-error: Error running '/pdjs/test/run_error.js':
-/pdjs/test/run_error.js:1: ReferenceError: xyz is not defined
+error: Error running 'C:/Source/pdjs/test/run_error.js':
+C:/Source/pdjs/test/run_error.js:1: ReferenceError: xyz is not defined
 xyz();
 ^
 ReferenceError: xyz is not defined
-    at /pdjs/test/run_error.js:1:1
+    at C:/Source/pdjs/test/run_error.js:1:1
 
  js run_error.js
 error: ... couldn't create
@@ -31,8 +39,10 @@ error: Must specify source file.
  js
 error: ... couldn't create
 loadbang
+prop proptest
+0: 1337
 error: Error calling 'exception':
-/pdjs/test/test.js:53: exception
+C:/Source/pdjs/test/test.js:62: exception
     throw "exception";
     ^
 
@@ -51,6 +61,14 @@ mess: symbol test
 mess: list test 1 2 3 4
 anything: hallo
 include
+include x 1
+include this.x 1
+include y y
+include this.y undefined
+o.x 4
+x 2
+require bar
+require foo 37
 Hello, world!
 jsarguments 
 error: error

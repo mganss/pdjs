@@ -1,7 +1,16 @@
-include("include.js");
-
 inlets = 3;
 outlets = 2;
+
+var o = { "x": 1 };
+x = 2;
+y = "y";
+include("include.js", o);
+post("o.x", o.x);
+post("x", x);
+
+var req = require("require.js");
+req.bar();
+post("require foo", req.foo);
 
 post("Hello, world!");
 post("jsarguments", jsarguments);
@@ -51,4 +60,8 @@ private.private = 1;
 
 function exception() {
     throw "exception";
+}
+
+function printprop() {
+    post("prop", prop);
 }
