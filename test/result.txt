@@ -59,7 +59,7 @@ mess: bang
 mess: 3.14
 mess: symbol test
 mess: list test 1 2 3 4
-anything: hallo
+anything hallo ballo
 include
 include x 1
 include this.x 1
@@ -70,7 +70,7 @@ x 2
 require bar
 require foo 37
 Hello, world!
-jsarguments 
+jsarguments test.js,1234,test
 error: error
 inlets: 3 outlets: 2
 Bang on inlet 0

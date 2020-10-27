@@ -45,7 +45,7 @@ function list() {
 }
 
 function anything() {
-    post("anything: " + messagename);
+    post("anything", messagename, Array.from(arguments));
 }
 
 function loadbang() {

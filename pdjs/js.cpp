@@ -28,8 +28,7 @@ typedef struct _js
     vector<_js_inlet*> inlets;
     vector<_outlet*> outlets;
     v8::Persistent<v8::Context>* context;
-    int argc;
-    t_atom* argv;
+    vector<t_atom> args;
     int inlet = 0;
     string messagename;
 } t_js;
@@ -182,7 +181,7 @@ static void js_get(v8::Local<v8::Name> property,
     }
     else if (name == "jsarguments")
     {
-        vector<v8::Local<v8::Value>> args = js_marshal_args(x->argc, x->argv);
+        vector<v8::Local<v8::Value>> args = js_marshal_args(x->args.size(), x->args.data());
         info.GetReturnValue().Set(v8::Array::New(js_isolate, args.data(), args.size()));
     }
 }
@@ -558,9 +557,8 @@ static void js_require(const v8::FunctionCallbackInfo<v8::Value>& args)
         auto script_name = js_object_to_string(isolate, args[0]);
         v8::Local<v8::Object> o = v8::Object::New(isolate);
         auto exportsKey = v8::String::NewFromUtf8Literal(isolate, "exports");
-        o->Set(context, exportsKey, v8::Object::New(isolate));
-
-        if (js_load(x, script_name.c_str(), false, &o) != NULL)
+        if (!(o->Set(context, exportsKey, v8::Object::New(isolate)).IsNothing())
+            && js_load(x, script_name.c_str(), false, &o) != NULL)
         {
             v8::Local<v8::Value> exports;
             if (o->Get(context, exportsKey).ToLocal(&exports))
@@ -756,7 +754,8 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
         if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
             auto context = x->context->Get(js_isolate);
-            context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName));
+            if (!context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName)).IsNothing())
+                return;
         }
     }
     else
@@ -822,8 +821,8 @@ static void* js_new(t_symbol* s, int argc, t_atom* argv)
 
     x->context = nullptr;
     x->canvas = canvas_getcurrent();
-    x->argc = argc;
-    x->argv = argv;
+    x->args.clear();
+    x->args.insert(x->args.end(), argv, &argv[argc]);
 
     if (argc < 1 || argv[0].a_type != A_SYMBOL)
     {
