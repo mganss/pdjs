@@ -10,10 +10,25 @@ o.x 4
 x 2
 require bar
 require foo 37
+error: Error compiling 'C:/Source/pdjs/test/compile_error.js':
+C:/Source/pdjs/test/compile_error.js:1: SyntaxError: Unexpected end of input
+(
+ 
+SyntaxError: Unexpected end of input
+    at C:/Source/pdjs/test/test.js:16:1
+
+verbose(4): ... you might be able to track this down from the Find menu.
+error: Error running 'C:/Source/pdjs/test/run_error.js':
+C:/Source/pdjs/test/run_error.js:1: ReferenceError: xyz is not defined
+xyz();
+^
+ReferenceError: xyz is not defined
+    at Object.<anonymous> (C:/Source/pdjs/test/run_error.js:1:1)
+    at C:/Source/pdjs/test/test.js:17:1
+
 Hello, world!
 jsarguments test.js,1234,test
 error: error
-verbose(4): ... you might be able to track this down from the Find menu.
 inlets: 3 outlets: 2
 error: Script file 'hjgjhgfjkh.js' not found.
  js hjgjhgfjkh.js
@@ -40,9 +55,9 @@ error: Must specify source file.
 error: ... couldn't create
 loadbang
 prop proptest
-0: 1337
+0: list foo 13 37
 error: Error calling 'exception':
-C:/Source/pdjs/test/test.js:62: exception
+C:/Source/pdjs/test/test.js:66: exception
     throw "exception";
     ^
 
@@ -69,6 +84,21 @@ o.x 4
 x 2
 require bar
 require foo 37
+error: Error compiling 'C:/Source/pdjs/test/compile_error.js':
+C:/Source/pdjs/test/compile_error.js:1: SyntaxError: Unexpected end of input
+(
+ 
+SyntaxError: Unexpected end of input
+    at C:/Source/pdjs/test/test.js:16:1
+
+error: Error running 'C:/Source/pdjs/test/run_error.js':
+C:/Source/pdjs/test/run_error.js:1: ReferenceError: xyz is not defined
+xyz();
+^
+ReferenceError: xyz is not defined
+    at Object.<anonymous> (C:/Source/pdjs/test/run_error.js:1:1)
+    at C:/Source/pdjs/test/test.js:17:1
+
 Hello, world!
 jsarguments test.js,1234,test
 error: error

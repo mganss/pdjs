@@ -181,7 +181,7 @@ static void js_get(v8::Local<v8::Name> property,
     }
     else if (name == "jsarguments")
     {
-        vector<v8::Local<v8::Value>> args = js_marshal_args(x->args.size(), x->args.data());
+        vector<v8::Local<v8::Value>> args = js_marshal_args((int)x->args.size(), x->args.data());
         info.GetReturnValue().Set(v8::Array::New(js_isolate, args.data(), args.size()));
     }
 }
@@ -692,6 +692,8 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
     string msgname = string(name);
     t_js* x = inlet->owner;
     v8::HandleScope handle_scope(js_isolate);
+    auto context = x->context->Get(js_isolate);
+    v8::Context::Scope context_scope(context);
 
     if (msgname == "compile")
     {
@@ -710,7 +712,6 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
 
         if (argc > 1 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
-            auto context = x->context->Get(js_isolate);
             vector<v8::Local<v8::Value>> args = js_marshal_args(argc - 1, &argv[1]);
             v8::Local<v8::Value> val;
 
@@ -733,7 +734,6 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
 
         if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
-            auto context = x->context->Get(js_isolate);
             v8::Local<v8::Value> val;
 
             if (context->Global()->Get(context, propName).ToLocal(&val) && !val->IsUndefined())
@@ -753,7 +753,6 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
 
         if (argc > 0 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
-            auto context = x->context->Get(js_isolate);
             if (!context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName)).IsNothing())
                 return;
         }
@@ -765,7 +764,6 @@ static void js_anything(t_js_inlet* inlet, t_symbol* s, int argc, t_atom* argv)
         if (v8::String::NewFromUtf8(js_isolate, name).ToLocal(&funcName))
         {
             v8::Local<v8::Value> funcVal;
-            auto context = x->context->Get(js_isolate);
             auto hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
 
             if (!hasFunc && v8::String::NewFromUtf8(js_isolate, "anything").ToLocal(&funcName))

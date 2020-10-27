@@ -11,6 +11,10 @@ post("x", x);
 var req = require("require.js");
 req.bar();
 post("require foo", req.foo);
+require(); // -> undefined
+
+include("compile_error.js", o);
+include("run_error.js", o);
 
 post("Hello, world!");
 post("jsarguments", jsarguments);
