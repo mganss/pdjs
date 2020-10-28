@@ -137,7 +137,7 @@ static v8::MaybeLocal<v8::Value> js_marshal_atom(const t_atom* atom)
     return v8::Local<v8::Value>();
 }
 
-static vector<v8::Local<v8::Value>> js_marshal_args(int argc, t_atom* argv)
+static vector<v8::Local<v8::Value>> js_marshal_args(int argc, const t_atom* argv)
 {
     vector<v8::Local<v8::Value>> args;
 
@@ -170,7 +170,7 @@ static void js_get(v8::Local<v8::Name> property,
     }
     else if (name == "inlet")
     {
-        info.GetReturnValue().Set((int32_t)x->inlet);
+        info.GetReturnValue().Set(x->inlet);
     }
     else if (name == "messagename")
     {
@@ -202,18 +202,18 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
         {
             if (inlets < 1) inlets = 1;
 
-            if (x->inlets.size() > inlets)
+            if ((int)x->inlets.size() > inlets)
             {
-                for (int i = inlets; i < x->inlets.size(); i++)
+                for (auto i = inlets; i < (int)x->inlets.size(); i++)
                 {
                     inlet_free(x->inlets[i]->inlet);
                 }
 
                 x->inlets.resize(inlets);
             }
-            else if (x->inlets.size() < inlets)
+            else if ((int)x->inlets.size() < inlets)
             {
-                for (auto i = x->inlets.size(); i < inlets; i++)
+                for (auto i = (int)x->inlets.size(); i < inlets; i++)
                 {
                     auto inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
                     inlet->pd = js_inlet_class;
@@ -233,18 +233,18 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
         {
             if (outlets < 0) outlets = 0;
 
-            if (x->outlets.size() > outlets)
+            if ((int)x->outlets.size() > outlets)
             {
-                for (int i = outlets; i < x->outlets.size(); i++)
+                for (int i = outlets; i < (int)x->outlets.size(); i++)
                 {
                     outlet_free(x->outlets[i]);
                 }
 
                 x->outlets.resize(outlets);
             }
-            else if (x->outlets.size() < outlets)
+            else if ((int)x->outlets.size() < outlets)
             {
-                for (auto i = x->outlets.size(); i < outlets; i++)
+                for (auto i = (int)x->outlets.size(); i < outlets; i++)
                 {
                     auto outlet = outlet_new(&x->x_obj, 0);
                     x->outlets.push_back(outlet);
@@ -390,7 +390,7 @@ static void js_outlet_args(_outlet* outlet, vector<v8::Local<v8::Value>> args)
 
     vector<t_atom> argv;
 
-    for (int i = 0; i < args.size(); i++)
+    for (int i = 0; i < (int)args.size(); i++)
     {
         v8::Local<v8::Value> arg = args[i];
         auto uma = js_unmarshal_arg(arg, isolate, context);
@@ -415,7 +415,7 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
     int32_t outlet_num;
 
     if (args[0]->Int32Value(context).To(&outlet_num)
-        && outlet_num < x->outlets.size())
+        && outlet_num < (int32_t)x->outlets.size())
     {
         _outlet* outlet = x->outlets[outlet_num];
         vector<v8::Local<v8::Value>> argv;
@@ -440,7 +440,6 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::Isolate* isolate = args.GetIsolate();
     v8::HandleScope scope(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
     v8::Local<v8::String> symbolString;
 
     if (args[0]->ToString(context).ToLocal(&symbolString))
@@ -680,13 +679,20 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
 
 static void js_free(t_js* x)
 {
+    if (x->context != nullptr)
+    {
+        x->context->Reset();
+        delete x->context;
+        x->context = nullptr;
+    }
+
     x->~t_js();
 }
 
 static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, t_atom* argv)
 {
     const char* name = s == &s_float ? "msg_float" : s->s_name;
-    string msgname = string(name);
+    auto msgname = string(name);
     auto x = inlet->owner;
     v8::HandleScope handle_scope(js_isolate);
     auto context = x->context->Get(js_isolate);
