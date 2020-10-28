@@ -218,7 +218,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
                     auto inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
                     inlet->pd = js_inlet_class;
                     inlet->owner = x;
-                    inlet->index = (int)i;
+                    inlet->index = i;
                     inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
                     x->inlets.push_back(inlet);
                 }
@@ -689,7 +689,7 @@ static void js_free(t_js* x)
     x->~t_js();
 }
 
-static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, t_atom* argv)
+static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_atom* argv)
 {
     const char* name = s == &s_float ? "msg_float" : s->s_name;
     auto msgname = string(name);
