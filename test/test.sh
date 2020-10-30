@@ -24,6 +24,10 @@ ERROR_REGEX="s/^(error: Error.*) '.*\.js':/\1/"
 sed -i -r "${ERROR_REGEX}" ./expected.txt
 sed -i -r "${ERROR_REGEX}" ./actual.txt
 
+JSOBJECT_REGEX="s/jsobject [0-9]+/jsobject/"
+sed -i -r "${JSOBJECT_REGEX}" ./expected.txt
+sed -i -r "${JSOBJECT_REGEX}" ./actual.txt
+
 diff --strip-trailing-cr actual.txt ./expected.txt
 
 SUCCESS=$?

@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <unordered_set>
 
 using namespace std;
 
@@ -31,6 +32,7 @@ typedef struct _js
     vector<t_atom> args;
     int inlet = 0;
     string messagename;
+    unordered_set<v8::Persistent<v8::Object>*> jsobjects;
 } t_js;
 
 typedef struct _js_inlet
@@ -41,11 +43,16 @@ typedef struct _js_inlet
     _inlet* inlet;
 } t_js_inlet;
 
-// Convert a JavaScript string to a std::string.  To not bother too
-// much with string encodings we just use ascii.
-static string js_object_to_string(v8::Isolate* isolate, v8::Local<v8::Value> value) {
+typedef struct _js_weakcallbackinfo
+{
+    t_js* x;
+    v8::Persistent<v8::Object>* jso;
+} t_js_weakcallbackinfo;
+
+static string js_object_to_string(v8::Isolate* isolate, v8::Local<v8::Value> value)
+{
     v8::String::Utf8Value utf8_value(isolate, value);
-    return string(*utf8_value);
+    return utf8_value.length() > 0 ? string(*utf8_value) : string();
 }
 
 // Reads a file into a v8 string.
@@ -137,13 +144,38 @@ static v8::MaybeLocal<v8::Value> js_marshal_atom(const t_atom* atom)
     return v8::Local<v8::Value>();
 }
 
-static vector<v8::Local<v8::Value>> js_marshal_args(int argc, const t_atom* argv)
+static v8::MaybeLocal<v8::Value> js_marshal_object(const t_atom* a, const t_js* x)
+{
+    string ps(atom_getsymbol(a)->s_name);
+    try
+    {
+        auto p = stoull(ps);
+        auto jso = reinterpret_cast<v8::Persistent<v8::Object>*>(p);
+        if (x->jsobjects.find(jso) != x->jsobjects.end())
+            return jso->Get(js_isolate);
+    }
+    catch (...) {}
+
+    return v8::MaybeLocal<v8::Value>();
+}
+
+static vector<v8::Local<v8::Value>> js_marshal_args(int argc, const t_atom* argv, const t_js* x)
 {
     vector<v8::Local<v8::Value>> args;
 
     for (int i = 0; i < argc; i++)
     {
         v8::Local<v8::Value> val;
+        auto atom = argv[i];
+
+        if (atom.a_type == A_SYMBOL && atom.a_w.w_symbol == gensym("jsobject")
+            && i < (argc - 1) && argv[i + 1].a_type == A_SYMBOL
+            && js_marshal_object(&argv[i + 1], x).ToLocal(&val))
+        {
+            args.push_back(val);
+            i++;
+        }
+
         if (js_marshal_atom(&(argv[i])).ToLocal(&val))
         {
             args.push_back(val);
@@ -182,7 +214,7 @@ static void js_get(v8::Local<v8::Name> property,
     }
     else if (name == "jsarguments")
     {
-        vector<v8::Local<v8::Value>> args = js_marshal_args((int)x->args.size(), x->args.data());
+        vector<v8::Local<v8::Value>> args = js_marshal_args((int)x->args.size(), x->args.data(), x);
         info.GetReturnValue().Set(v8::Array::New(js_isolate, args.data(), args.size()));
     }
 }
@@ -313,7 +345,52 @@ static void js_error(const v8::FunctionCallbackInfo<v8::Value>& args) {
     pd_error(x, "%s", err.c_str());
 }
 
-static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* isolate, v8::Local<v8::Context> context)
+static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Local<v8::Value> value, t_js* x = NULL)
+{
+    if (value->IsString() || value->IsStringObject())
+    {
+        return { js_object_to_string(isolate, value), 0 };
+    }
+    else if (value->IsObject())
+    {
+        // check if we already have a persistent handle to this object in the set
+        for (auto elem : x->jsobjects)
+        {
+            if (value == elem->Get(isolate))
+            {
+                return { string("jsobject"), reinterpret_cast<intptr_t>(elem) };
+            }
+        }
+
+        auto o = v8::Local<v8::Object>::Cast(value);
+        auto jso = new v8::Persistent<v8::Object>(js_isolate, o);
+        auto wcbi = new t_js_weakcallbackinfo();
+
+        wcbi->x = x;
+        wcbi->jso = jso;
+
+        x->jsobjects.insert(jso);
+
+        jso->SetWeak(wcbi, [](const v8::WeakCallbackInfo<t_js_weakcallbackinfo>& data)
+        {
+            auto wcbi = data.GetParameter();
+            if (wcbi != nullptr)
+            {
+                if (wcbi->x != nullptr)
+                    wcbi->x->jsobjects.erase(wcbi->jso);
+                if (wcbi->jso != nullptr)
+                    delete wcbi->jso;
+                delete wcbi;
+            }
+        }, v8::WeakCallbackType::kParameter);
+
+        return { string("jsobject"), reinterpret_cast<intptr_t>(jso) };
+    }
+
+    return { string(), 0 };
+}
+
+static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* isolate, v8::Local<v8::Context> context, t_js* x)
 {
     vector<t_atom> args;
 
@@ -335,71 +412,98 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
             v8::Local<v8::Value> subval;
             if (array->Get(context, i).ToLocal(&subval))
             {
-                auto subs = js_unmarshal_arg(subval, isolate, context);
+                auto subs = js_unmarshal_arg(subval, isolate, context, x);
                 args.insert(args.end(), subs.begin(), subs.end());
             }
         }
     }
-    else if (arg->IsString())
+    else
     {
-        auto s = js_object_to_string(isolate, arg);
+        auto t = js_unmarshal_string(isolate, arg, x);
+
         t_atom a;
-        SETSYMBOL(&a, gensym(s.c_str()));
+        SETSYMBOL(&a, gensym(get<0>(t).c_str()));
         args.push_back(a);
+
+        auto p = get<1>(t);
+
+        if (p > 0)
+        {
+            t_atom ap;
+            SETSYMBOL(&ap, gensym(to_string(p).c_str()));
+            args.push_back(ap);
+        }
     }
 
     return args;
 }
 
-static void js_outlet_args(_outlet* outlet, vector<v8::Local<v8::Value>> args)
+static vector<t_atom> js_unmarshal_args(vector<v8::Local<v8::Value>> &args, v8::Isolate* isolate, v8::Local<v8::Context> context, t_js* x)
 {
-    v8::Isolate* isolate = js_isolate;
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-
-    if (args.size() == 1)
-    {
-        v8::Local<v8::Value> arg = args[0];
-
-        if (arg->IsNumber())
-        {
-            double num;
-
-            if (arg->NumberValue(context).To(&num))
-            {
-                outlet_float(outlet, (t_float)num);
-            }
-
-            return;
-        }
-        else if (!arg->IsArray())
-        {
-            auto s = js_object_to_string(isolate, arg);
-
-            if (s == "bang")
-            {
-                outlet_bang(outlet);
-            }
-            else
-            {
-                outlet_symbol(outlet, gensym(s.c_str()));
-            }
-
-            return;
-        }
-    }
-
     vector<t_atom> argv;
 
     for (int i = 0; i < (int)args.size(); i++)
     {
         v8::Local<v8::Value> arg = args[i];
-        auto uma = js_unmarshal_arg(arg, isolate, context);
+        auto uma = js_unmarshal_arg(arg, isolate, context, x);
         argv.insert(argv.end(), uma.begin(), uma.end());
     }
 
+    return argv;
+}
+
+static t_symbol* js_get_type(vector<t_atom> &argv)
+{
+    auto first = argv[0];
+    t_symbol* type = NULL;
+
+    if (argv.size() == 1)
+    {
+        switch (first.a_type)
+        {
+        case A_FLOAT:
+            type = &s_float;
+            break;
+        case A_SYMBOL:
+            if (first.a_w.w_symbol == gensym("bang"))
+                type = &s_bang;
+            else
+                type = &s_symbol;
+            break;
+        default:
+            type = NULL;
+            break;
+        }
+    }
+    else
+    {
+        if (first.a_type != A_SYMBOL || first.a_w.w_symbol == gensym("list"))
+            type = &s_list;
+        else
+            type = first.a_w.w_symbol;
+    }
+
+    return type;
+}
+
+static void js_outlet_args(_outlet* outlet, vector<v8::Local<v8::Value>> &args, t_js* x)
+{
+    v8::Isolate* isolate = js_isolate;
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+    auto argv = js_unmarshal_args(args, isolate, context, x);
+
     if (!argv.empty())
     {
-        outlet_list(outlet, &s_list, (int)argv.size(), argv.data());
+        auto type = js_get_type(argv);
+
+        if (type != NULL)
+        {
+            if (type == argv[0].a_w.w_symbol)
+                argv.erase(argv.begin());
+
+            outlet_anything(outlet, type, (int)argv.size(), argv.data());
+        }
     }
 }
 
@@ -428,7 +532,7 @@ static void js_outlet(const v8::FunctionCallbackInfo<v8::Value>& args)
 
         if (!argv.empty())
         {
-            js_outlet_args(outlet, argv);
+            js_outlet_args(outlet, argv, x);
         }
     }
 }
@@ -441,6 +545,8 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
     v8::HandleScope scope(isolate);
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     v8::Local<v8::String> symbolString;
+    v8::Local<v8::External> f = v8::Local<v8::External>::Cast(args.Data());
+    auto x = (t_js*)f->Value();
 
     if (args[0]->ToString(context).ToLocal(&symbolString))
     {
@@ -454,35 +560,21 @@ static void js_messnamed(const v8::FunctionCallbackInfo<v8::Value>& args)
             for (int i = 1; i < args.Length(); i++)
             {
                 v8::Local<v8::Value> arg = args[i];
-                auto uma = js_unmarshal_arg(arg, isolate, context);
+                auto uma = js_unmarshal_arg(arg, isolate, context, x);
                 argv.insert(argv.end(), uma.begin(), uma.end());
             }
 
             if (!argv.empty())
             {
-                t_symbol *type = NULL;
-
-                if (argv.size() == 1)
-                {
-                    auto arg = argv[0];
-
-                    if (arg.a_type == A_FLOAT)
-                        type = &s_float;
-                    else if (arg.a_type == A_SYMBOL)
-                    {
-                        if (string(atom_getsymbol(&arg)->s_name) == "bang")
-                            type = &s_bang;
-                        else
-                            type = &s_symbol;
-                    }
-                }
-                else
-                {
-                    type = &s_list;
-                }
+                auto type = js_get_type(argv);
 
                 if (type != NULL)
+                {
+                    if (type == argv[0].a_w.w_symbol)
+                        argv.erase(argv.begin());
+
                     pd_typedmess(sym->s_thing, type, (int)argv.size(), argv.data());
+                }
             }
         }
     }
@@ -715,7 +807,7 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
 
         if (argc > 1 && js_marshal_atom(&argv[0]).ToLocal(&propName) && propName->IsName())
         {
-            vector<v8::Local<v8::Value>> args = js_marshal_args(argc - 1, &argv[1]);
+            vector<v8::Local<v8::Value>> args = js_marshal_args(argc - 1, &argv[1], x);
             v8::Local<v8::Value> val;
 
             if (args.size() > 1)
@@ -744,7 +836,7 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
             {
                 vector<v8::Local<v8::Value>> args;
                 args.push_back(val);
-                js_outlet_args(x->outlets[0], args);
+                js_outlet_args(x->outlets[0], args, x);
             }
         }
     }
@@ -773,7 +865,7 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
                 v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(funcVal);
                 v8::TryCatch trycatch(js_isolate);
                 v8::Local<v8::Value> result;
-                vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv);
+                vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv, x);
                 x->inlet = inlet->index;
                 x->messagename = msgname;
 

@@ -83,7 +83,7 @@ Private functions are supported.
 - [ ] `declareattribute`
 - [ ] `embedmessage`
 - [ ] `notifyclients`
-- [x] `outlet` (no support for `jsobject`)
+- [x] `outlet`
 - [ ] `setinletassist`
 - [ ] `setoutletassist`
 

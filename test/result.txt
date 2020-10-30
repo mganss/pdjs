@@ -54,8 +54,18 @@ error: Must specify source file.
  js
 error: ... couldn't create
 loadbang
+jso_in test
+print: jso_in jsobject 8080192
+jso_in other 
+print: jso_in jsobject 7634144
+jso_in local
+print: jso_in jsobject 7636944
+jso_out
+0: jsobject 8080192
+jso_in test
+print: jso_in jsobject 8080192
 prop proptest
-0: list foo 13 37
+0: foo 13 37
 error: Error calling 'exception':
 C:/Source/pdjs/test/test.js:66: exception
     throw "exception";
@@ -68,12 +78,12 @@ Bang on inlet 1
 0: symbol Hello\,\ world!
 1: bang
 0: 47.11
-0: list x y z 1 2 3
-1: list hallo ballo 12.34
+0: x y z 1 2 3
+1: hallo ballo 12.34
 mess: bang
 mess: 3.14
 mess: symbol test
-mess: list test 1 2 3 4
+mess: test 1 2 3 4
 anything hallo ballo
 include
 include x 1
@@ -107,12 +117,12 @@ Bang on inlet 0
 0: symbol Hello\,\ world!
 1: bang
 0: 47.11
-0: list x y z 1 2 3
-1: list hallo ballo 12.34
+0: x y z 1 2 3
+1: hallo ballo 12.34
 mess: bang
 mess: 3.14
 mess: symbol test
-mess: list test 1 2 3 4
+mess: test 1 2 3 4
 float: 1.5
 other
 inlets: 4 outlets: 3
