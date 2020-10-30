@@ -47,4 +47,7 @@ if(V8_SNAPSHOT_BLOB)
 configure_file(${V8_SNAPSHOT_BLOB}> ${PD_OUTPUT_PATH}/snapshot_blob.bin COPYONLY)
 endif()
 
+configure_file(pdjs/js-help.pd ${PD_OUTPUT_PATH}/js-help.pd COPYONLY)
+configure_file(pdjs/js-help.js ${PD_OUTPUT_PATH}/js-help.js COPYONLY)
+
 target_link_libraries(pdjs_project V8::V8)
