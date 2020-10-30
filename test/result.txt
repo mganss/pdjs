@@ -55,15 +55,15 @@ error: Must specify source file.
 error: ... couldn't create
 loadbang
 jso_in test
-print: jso_in jsobject 8080192
+print: jso_in jsobject 77867408
 jso_in other 
-print: jso_in jsobject 7634144
+print: jso_in jsobject 77866448
 jso_in local
-print: jso_in jsobject 7636944
+print: jso_in jsobject 77864848
 jso_out
-0: jsobject 8080192
+0: jsobject 77867408
 jso_in test
-print: jso_in jsobject 8080192
+print: jso_in jsobject 77867408
 prop proptest
 0: foo 13 37
 error: Error calling 'exception':
@@ -75,14 +75,14 @@ list 3: 1 2 3
 error: Function 'private' is private.
 foo: 5 'toes'
 Bang on inlet 1
-0: symbol Hello\,\ world!
+0: Hello, world!
 1: bang
 0: 47.11
 0: x y z 1 2 3
 1: hallo ballo 12.34
 mess: bang
 mess: 3.14
-mess: symbol test
+mess: test
 mess: test 1 2 3 4
 anything hallo ballo
 include
@@ -114,14 +114,14 @@ jsarguments test.js,1234,test
 error: error
 inlets: 3 outlets: 2
 Bang on inlet 0
-0: symbol Hello\,\ world!
+0: Hello, world!
 1: bang
 0: 47.11
 0: x y z 1 2 3
 1: hallo ballo 12.34
 mess: bang
 mess: 3.14
-mess: symbol test
+mess: test
 mess: test 1 2 3 4
 float: 1.5
 other

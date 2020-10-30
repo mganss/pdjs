@@ -219,6 +219,56 @@ static void js_get(v8::Local<v8::Name> property,
     }
 }
 
+static void js_set_inlets(t_js* x, int inlets)
+{
+    if (inlets < 1) inlets = 1;
+
+    if ((int)x->inlets.size() > inlets)
+    {
+        for (auto i = inlets; i < (int)x->inlets.size(); i++)
+        {
+            inlet_free(x->inlets[i]->inlet);
+        }
+
+        x->inlets.resize(inlets);
+    }
+    else if ((int)x->inlets.size() < inlets)
+    {
+        for (auto i = (int)x->inlets.size(); i < inlets; i++)
+        {
+            auto inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
+            inlet->pd = js_inlet_class;
+            inlet->owner = x;
+            inlet->index = i;
+            inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
+            x->inlets.push_back(inlet);
+        }
+    }
+}
+
+static void js_set_outlets(t_js* x, int outlets)
+{
+    if (outlets < 0) outlets = 0;
+
+    if ((int)x->outlets.size() > outlets)
+    {
+        for (int i = outlets; i < (int)x->outlets.size(); i++)
+        {
+            outlet_free(x->outlets[i]);
+        }
+
+        x->outlets.resize(outlets);
+    }
+    else if ((int)x->outlets.size() < outlets)
+    {
+        for (auto i = (int)x->outlets.size(); i < outlets; i++)
+        {
+            auto outlet = outlet_new(&x->x_obj, 0);
+            x->outlets.push_back(outlet);
+        }
+    }
+}
+
 static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
     const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -232,29 +282,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
 
         if (value->Int32Value(x->context->Get(js_isolate)).To(&inlets))
         {
-            if (inlets < 1) inlets = 1;
-
-            if ((int)x->inlets.size() > inlets)
-            {
-                for (auto i = inlets; i < (int)x->inlets.size(); i++)
-                {
-                    inlet_free(x->inlets[i]->inlet);
-                }
-
-                x->inlets.resize(inlets);
-            }
-            else if ((int)x->inlets.size() < inlets)
-            {
-                for (auto i = (int)x->inlets.size(); i < inlets; i++)
-                {
-                    auto inlet = (t_js_inlet*)getbytes(sizeof(t_js_inlet));
-                    inlet->pd = js_inlet_class;
-                    inlet->owner = x;
-                    inlet->index = i;
-                    inlet->inlet = inlet_new(&x->x_obj, &inlet->pd, 0, 0);
-                    x->inlets.push_back(inlet);
-                }
-            }
+            js_set_inlets(x, inlets);
         }
     }
     else if (name == "outlets")
@@ -263,25 +291,7 @@ static void js_set(v8::Local<v8::Name> property, v8::Local<v8::Value> value,
 
         if (value->Int32Value(x->context->Get(js_isolate)).To(&outlets))
         {
-            if (outlets < 0) outlets = 0;
-
-            if ((int)x->outlets.size() > outlets)
-            {
-                for (int i = outlets; i < (int)x->outlets.size(); i++)
-                {
-                    outlet_free(x->outlets[i]);
-                }
-
-                x->outlets.resize(outlets);
-            }
-            else if ((int)x->outlets.size() < outlets)
-            {
-                for (auto i = (int)x->outlets.size(); i < outlets; i++)
-                {
-                    auto outlet = outlet_new(&x->x_obj, 0);
-                    x->outlets.push_back(outlet);
-                }
-            }
+            js_set_outlets(x, outlets);
         }
     }
 }
@@ -468,7 +478,7 @@ static t_symbol* js_get_type(vector<t_atom> &argv)
             if (first.a_w.w_symbol == gensym("bang"))
                 type = &s_bang;
             else
-                type = &s_symbol;
+                type = first.a_w.w_symbol;
             break;
         default:
             type = NULL;
@@ -919,6 +929,8 @@ static t_js* js_new(const t_symbol*, int argc, t_atom* argv)
     }
 
     const char* script_name = argv[0].a_w.w_symbol->s_name;
+
+    js_set_inlets(x, 1);
 
     if (js_load(x, script_name) == NULL)
         return NULL;
