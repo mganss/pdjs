@@ -76,7 +76,10 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: js.pd_linux
-          path: binaries/x64-linux/js.pd_linux
+          path: |
+            binaries/x64-linux/js.pd_linux
+            pdjs/js-help.pd
+            pdjs/js-help.js
 
       - name: Build for coverage analysis
         run: |
