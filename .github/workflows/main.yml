@@ -171,6 +171,7 @@ jobs:
       - name: Create package
         working-directory: deken
         run: |
+          echo "gpg_agent=true" > ~/.deken/config
           echo -e "js\tExecute JavaScript" > objects.txt
           ./deken package -v ${{ env.VERSION }} --objects objects.txt pdjs
 
