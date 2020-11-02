@@ -36,13 +36,12 @@ jobs:
         working-directory: ./test
         run: ./test.sh
         
-      - name: Archive production artifacts
+      - name: Archive external
         uses: actions/upload-artifact@v2
         with:
-          name: js.dll
+          name: pdjs
           path: |
             binaries/x64-windows-static/js.dll
-            binaries/x64-windows-static/js-help.*
 
   build-linux:
     runs-on: ubuntu-latest
@@ -74,10 +73,10 @@ jobs:
           chmod +x ./pd/x64-linux/bin/pd
           bash ./test.sh
 
-      - name: Archive production artifacts
+      - name: Archive external
         uses: actions/upload-artifact@v2
         with:
-          name: js.pd_linux
+          name: pdjs
           path: |
             binaries/x64-linux/js.pd_linux
             binaries/x64-linux/js-help.*
@@ -138,9 +137,52 @@ jobs:
             -Dsonar.projectVersion=${{ env.VERSION }} \
             -Dsonar.cfamily.gcov.reportsPath=out/build/x64-linux-Debug
 
-  create-tag:
+  deken:
     runs-on: ubuntu-latest
     needs: [ build-windows, build-linux ]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install deken
+        run: |
+          mkdir deken
+          curl https://raw.githubusercontent.com/pure-data/deken/master/developer/deken > deken/deken
+          chmod +x deken/deken
+          ./deken/deken
+
+      - name: Download external
+        uses: actions/download-artifact@v2
+        with:
+          name: pdjs
+          path: deken/pdjs
+
+      - name: Install GPG key
+        env:
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          cat <(echo -e "${{ secrets.GPG_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          gpgconf --kill gpg-agent || true
+          gpg-agent --daemon --allow-preset-passphrase --max-cache-ttl 3600
+          export GPG_KEYGRIP=`gpg --list-secret-keys --with-keygrip | grep "Keygrip" | head -1 | egrep -o '[0-9A-F]{40}$'`
+          /usr/lib/gnupg2/gpg-preset-passphrase -cP ${{ secrets.GPG_PASSPHRASE }} ${GPG_KEYGRIP}
+
+      - name: Create package
+        working-directory: deken
+        run: |
+          echo -e "js\tExecute JavaScript" > objects.txt
+          ./deken package -v ${{ env.VERSION }} --objects objects.txt pdjs
+
+      - name: Archive deken package
+        uses: actions/upload-artifact@v2
+        with:
+          name: deken
+          path: deken/pdjs*.dek*
+
+  create-tag:
+    runs-on: ubuntu-latest
+    needs: deken
     steps:
       - name: Create tag v${{ env.VERSION }}
         if: ${{ github.event_name != 'pull_request' }}
