@@ -1,0 +1,14 @@
+cpost 1 2 3
+pdjs version 1.0 (v8 version 8.5.210.20)
+post
+error: error
+verbose(4): ... you might be able to track this down from the Find menu.
+out1: outlet 1
+out2: outlet 2
+out1: 47.11
+out1: x y z 1 2 3
+out2: hallo ballo 12.34
+mess: bang
+mess: 3.14
+mess: test
+mess: test 1 2 3 4

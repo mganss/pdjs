@@ -1,0 +1,15 @@
+#N canvas 644 393 756 490 12;
+#X obj 17 16 js hjgjhgfjkh.js;
+#X obj 19 45 js compile_error.js;
+#X obj 19 75 js run_error.js;
+#X obj 20 102 js;
+#X obj 232 30 ../run;
+#X msg 298 101 compile;
+#X obj 230 66 t b b;
+#X obj 245 160 js test.js arg1 2;
+#X msg 156 101 compile other.js x;
+#X connect 4 0 6 0;
+#X connect 5 0 7 0;
+#X connect 6 0 8 0;
+#X connect 6 1 5 0;
+#X connect 8 0 7 0;

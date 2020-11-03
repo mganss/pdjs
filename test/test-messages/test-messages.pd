@@ -1,0 +1,30 @@
+#N canvas 644 393 756 490 12;
+#X obj 232 30 ../run;
+#X obj 514 125 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X msg 377 122 foo bar baz;
+#X msg 323 122 1 2 3;
+#X msg 252 122 bar baz;
+#X msg 187 121 private;
+#X msg 112 123 exception;
+#X obj 230 66 t b b b b b b b;
+#X obj 253 186 js test.js;
+#X obj 293 32 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X msg 471 122 1.5;
+#X connect 0 0 7 0;
+#X connect 1 0 8 0;
+#X connect 2 0 8 0;
+#X connect 3 0 8 0;
+#X connect 4 0 8 0;
+#X connect 5 0 8 0;
+#X connect 6 0 8 0;
+#X connect 7 0 6 0;
+#X connect 7 1 5 0;
+#X connect 7 2 4 0;
+#X connect 7 3 3 0;
+#X connect 7 4 2 0;
+#X connect 7 5 10 0;
+#X connect 7 6 1 0;
+#X connect 9 0 7 0;
+#X connect 10 0 8 0;

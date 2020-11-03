@@ -1,0 +1,4 @@
+pdjs version 1.0 (v8 version 8.5.210.20)
+prop proptest
+out: foo 13 37
+prop undefined

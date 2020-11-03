@@ -1,0 +1,14 @@
+pdjs version 1.0 (v8 version 8.5.210.20)
+loadbang
+bang on inlet 0
+float 1.5
+foo bar baz
+list 1,2,3
+anything bar baz
+error: Function 'private' is private.
+verbose(4): ... you might be able to track this down from the Find menu.
+error: Error calling 'exception':
+/mnt/c/Source/pdjs/test/test-messages/test.js:33: exception
+    throw "exception";
+    ^
+

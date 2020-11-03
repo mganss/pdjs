@@ -1,0 +1,10 @@
+pdjs version 1.0 (v8 version 8.5.210.20)
+include
+include x 1
+include this.x 1
+include y y
+include this.y undefined
+o.x 4
+x 2
+require bar
+require foo 37

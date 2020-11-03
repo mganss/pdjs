@@ -1,4 +1,0 @@
-#N canvas 676 297 450 300 12;
-#X declare -path ../binaries/x64-windows;
-#X obj 21 21 declare -path ../binaries/x64-windows;
-#X obj 190 115 test;

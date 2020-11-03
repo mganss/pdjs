@@ -1,6 +1,8 @@
 #!/bin/bash
 
-$PD -noprefs -nrt -nogui -stderr -batch -open test.${TRIPLET}.pd -send "test bang" \
+$PD -noprefs -nrt -nogui -stderr -batch \
+    -path ../../binaries/${TRIPLET}/ \
+    -open "$1" -send "test bang" \
     > result.${TRIPLET}.out.txt 2> result.${TRIPLET}.err.txt
 
 rm -f result.${TRIPLET}.txt

@@ -1,0 +1,10 @@
+#N canvas 898 45 450 300 12;
+#X obj 198 77 t b b;
+#X msg 146 110 quit;
+#X obj 145 138 s pd;
+#X obj 198 44 r test;
+#X obj 214 130 outlet;
+#X connect 0 0 1 0;
+#X connect 0 1 4 0;
+#X connect 1 0 2 0;
+#X connect 3 0 0 0;

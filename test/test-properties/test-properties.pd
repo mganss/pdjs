@@ -1,0 +1,28 @@
+#N canvas 1992 101 756 490 12;
+#X obj 232 30 ../run;
+#X obj 293 32 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X msg 577 126 setprop prop proptest;
+#X msg 499 126 printprop;
+#X msg 224 127 getprop prop;
+#X msg 123 125 delprop prop;
+#X msg 325 127 setprop prop foo 13 37;
+#X msg 44 125 printprop;
+#X obj 230 66 t b b b b b b;
+#X obj 255 236 print out;
+#X obj 253 186 js test.js;
+#X connect 0 0 8 0;
+#X connect 1 0 8 0;
+#X connect 2 0 10 0;
+#X connect 3 0 10 0;
+#X connect 4 0 10 0;
+#X connect 5 0 10 0;
+#X connect 6 0 10 0;
+#X connect 7 0 10 0;
+#X connect 8 0 7 0;
+#X connect 8 1 5 0;
+#X connect 8 2 4 0;
+#X connect 8 3 6 0;
+#X connect 8 4 3 0;
+#X connect 8 5 2 0;
+#X connect 10 0 9 0;

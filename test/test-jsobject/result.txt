@@ -1,0 +1,10 @@
+pdjs version 1.0 (v8 version 8.5.210.20)
+print: jso_in jsobject 93876317939376
+jso_in test
+print: jso_in jsobject 93876318825136
+jso_in other 
+print: jso_in jsobject 93876318695216
+jso_in local
+jso_out
+print: jso_in jsobject 93876317939376
+jso_in test
