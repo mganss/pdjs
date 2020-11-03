@@ -180,6 +180,24 @@ jobs:
         with:
           name: deken
           path: deken/pdjs*.dek*
+          
+      - name: Delete transient artifact
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const options = github.actions.listWorkflowRunArtifacts.endpoint.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+            const artifacts = await github.paginate(options);
+            const artifact = artifacts.find(a => a.name === "pdjs");
+            github.actions.deleteArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifact.id
+            });
 
   create-tag:
     runs-on: ubuntu-latest
