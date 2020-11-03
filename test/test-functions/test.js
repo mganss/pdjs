@@ -9,6 +9,8 @@ function bang() {
     outlet(1, "outlet 2");
     outlet(0, 47.11);
     outlet(0, ["x", "y", "z", 1, 2, 3]);
+    outlet(0, 1, 2, 3);
+    outlet(0, ["list", "a", "b", "c"]);
     outlet(1, "hallo", "ballo", 12.34);
     messnamed("mess", "bang");
     messnamed("mess", 3.14);

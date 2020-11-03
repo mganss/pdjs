@@ -1,0 +1,14 @@
+#N canvas 2632 204 756 490 12;
+#X obj 232 30 ../run;
+#X obj 308 33 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+-1;
+#X obj 230 66 t b b;
+#X msg 305 111 change 1;
+#X msg 194 112 change -1;
+#X obj 245 160 js test.js;
+#X connect 0 0 2 0;
+#X connect 1 0 2 0;
+#X connect 2 0 4 0;
+#X connect 2 1 3 0;
+#X connect 3 0 5 0;
+#X connect 4 0 5 0;

@@ -1,0 +1,5 @@
+pdjs version 1.0 (v8 version 8.5.210.20)
+change inlets from 1 to 2
+change outlets from 1 to 2
+change inlets from 2 to 1
+change outlets from 2 to 1

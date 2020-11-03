@@ -8,3 +8,19 @@ o.x 4
 x 2
 require bar
 require foo 37
+error: Error compiling '/mnt/c/Source/pdjs/test/test-require/compile_error.js':
+/mnt/c/Source/pdjs/test/test-require/compile_error.js:1: SyntaxError: Unexpected end of input
+(
+ 
+SyntaxError: Unexpected end of input
+    at /mnt/c/Source/pdjs/test/test-require/test.js:13:1
+
+verbose(4): ... you might be able to track this down from the Find menu.
+error: Error running '/mnt/c/Source/pdjs/test/test-require/run_error.js':
+/mnt/c/Source/pdjs/test/test-require/run_error.js:1: ReferenceError: xyz is not defined
+xyz();
+^
+ReferenceError: xyz is not defined
+    at Object.<anonymous> (/mnt/c/Source/pdjs/test/test-require/run_error.js:1:1)
+    at /mnt/c/Source/pdjs/test/test-require/test.js:14:1
+
