@@ -192,7 +192,9 @@ jobs:
               run_id: context.runId
             });
             const artifacts = await github.paginate(options);
+            console.log(artifacts);
             const artifact = artifacts.find(a => a.name === "pdjs");
+            console.log(artifact);
             github.actions.deleteArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
