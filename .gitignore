@@ -1,9 +1,9 @@
 .vs
 /out
 /binaries
-/test/pd-*
-/test/result.*.txt
 /vcpkg-export
 /vcpkg-export.7z
-/test/expected*.txt
-/test/actual*.txt
+/test/**/pd-*
+/test/**/result.*.txt
+/test/**/expected*.txt
+/test/**/actual*.txt

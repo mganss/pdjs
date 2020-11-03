@@ -804,6 +804,10 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
     {
         if (argc > 0 && argv[0].a_type == A_SYMBOL)
         {
+            x->args.clear();
+            x->args.insert(x->args.end(), argv, &argv[argc]);
+            js_set_inlets(x, 1);
+            js_set_outlets(x, 1);
             js_load(x, atom_getsymbol(&argv[0])->s_name);
         }
         else
@@ -931,6 +935,7 @@ static t_js* js_new(const t_symbol*, int argc, t_atom* argv)
     const char* script_name = argv[0].a_w.w_symbol->s_name;
 
     js_set_inlets(x, 1);
+    js_set_outlets(x, 1);
 
     if (js_load(x, script_name) == NULL)
         return NULL;
