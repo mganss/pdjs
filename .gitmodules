@@ -6,4 +6,4 @@
 	url = https://github.com/pure-data/pure-data
 [submodule "vcpkg"]
 	path = vcpkg
-	url = https://github.com/Microsoft/vcpkg
+	url = https://github.com/mganss/vcpkg
