@@ -1,7 +1,7 @@
 name: CI
 env:
-  VERSION: 1.1.${{ github.run_number }}
-  VCPKG_EXPORT: https://github.com/mganss/vcpkg/releases/download/v8_8.5.210.20/vcpkg-export.7z
+  VERSION: 1.2.${{ github.run_number }}
+  LIB_BINARIES_URL: https://github.com/mganss/v8/releases/download/8.6.395.24/lib.7z
 
 on:
   push:
@@ -18,43 +18,44 @@ jobs:
           submodules: true
       - uses: msys2/setup-msys2@v2
 
-      - name: Download vcpkg export
+      - name: Download libv8 binaries
+        working-directory: ./v8
         run: |
-          (New-Object System.Net.WebClient).DownloadFile("${{ env.VCPKG_EXPORT }}", "vcpkg-export.7z")
-          7z x vcpkg-export.7z
+          (New-Object System.Net.WebClient).DownloadFile("${{ env.LIB_BINARIES_URL }}", "lib.7z")
+          7z x lib.7z
 
       - name: Build
         shell: cmd
         run: |
           call "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
           md out\build\x64-Release
-          CMake -G Ninja -DVERSION=${{ env.VERSION }} -DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake -B out\build\x64-Release -S .
+          CMake -G Ninja -DVERSION=${{ env.VERSION }} -DCMAKE_BUILD_TYPE=Release -B out\build\x64-Release -S .
           CMake --build out\build\x64-Release -- -v
 
       - name: Test
         shell: msys2 {0}
         working-directory: ./test
         run: ./test.sh
-        
+
       - name: Archive external
         uses: actions/upload-artifact@v2
         with:
           name: pdjs
-          retention-days: 1
           path: |
-            binaries/x64-windows-static/js.dll
+            binaries/x64-windows/js.dll
 
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
 
-      - name: Download vcpkg export
+      - name: Download libv8 binaries
+        working-directory: ./v8
         run: |
-          curl -L -s -o vcpkg-export.7z ${{ env.VCPKG_EXPORT }}
-          7zr x vcpkg-export.7z
+          curl -L -s -o lib.7z ${{ env.LIB_BINARIES_URL }}
+          7zr x lib.7z
 
       - name: Build
         run: |
@@ -62,9 +63,7 @@ jobs:
           mkdir -p out/build/x64-linux-Release
           cmake -G Ninja \
             -DVERSION=${{ env.VERSION }} \
-            -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
             -B out/build/x64-linux-Release -S .
           cmake --build out/build/x64-linux-Release -- -v
 
@@ -78,7 +77,6 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: pdjs
-          retention-days: 1
           path: |
             binaries/x64-linux/js.pd_linux
             binaries/x64-linux/js-help.*
@@ -88,9 +86,7 @@ jobs:
           mkdir -p out/build/x64-linux-Debug
           cmake -G Ninja \
             -DVERSION=${{ env.VERSION }} \
-            -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
             -DCOVERAGE=ON \
             -B out/build/x64-linux-Debug -S .
           cmake --build out/build/x64-linux-Debug -- -v
@@ -98,7 +94,7 @@ jobs:
       - name: Generate coverage data
         working-directory: ./test
         run: |
-          bash ./test.sh          
+          bash ./test.sh
           cd ../out/build/x64-linux-Debug/
           gcov CMakeFiles/pdjs_project.dir/pdjs/js.cpp.gcno
           cat js.cpp.gcov
@@ -109,7 +105,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./out/build/x64-linux-Debug/js.cpp.gcov
           fail_ci_if_error: true
-      
+
       - name: SonarCloud
         env:
           SONAR_VERSION: 4.4.0.2170
@@ -123,9 +119,7 @@ jobs:
           export PATH="${PWD}/sonar-scanner-${{ env.SONAR_VERSION }}-linux/bin:${PWD}/build-wrapper-linux-x86:${PATH}"
           cmake -G Ninja \
             -DVERSION=${{ env.VERSION }} \
-            -DVCPKG_TARGET_TRIPLET=x64-linux \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
             -DCOVERAGE=OFF \
             -B out/build/x64-linux-Debug -S .
           cmake --build out/build/x64-linux-Debug --target clean -- -v
@@ -182,7 +176,7 @@ jobs:
         with:
           name: deken
           path: deken/pdjs*.dek*
-          
+
   create-tag:
     runs-on: ubuntu-latest
     needs: deken

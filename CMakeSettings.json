@@ -10,13 +10,7 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "-v",
       "ctestCommandArgs": "",
-      "variables": [
-        {
-          "name": "VCPKG_TARGET_TRIPLET",
-          "value": "x64-windows-static",
-          "type": "STRING"
-        }
-      ]
+      "variables": []
     },
     {
       "name": "WSL-GCC-Debug",
@@ -43,13 +37,7 @@
       "buildCommandArgs": "-v",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "variables": [
-        {
-          "name": "VCPKG_TARGET_TRIPLET",
-          "value": "x64-windows-static",
-          "type": "STRING"
-        }
-      ]
+      "variables": []
     },
     {
       "name": "WSL-GCC-Release",

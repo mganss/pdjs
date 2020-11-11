@@ -7,3 +7,7 @@
 /test/**/result.*.txt
 /test/**/expected*.txt
 /test/**/actual*.txt
+/v8/lib
+/v8/lib.7z
+/CMakeFiles
+/CMakeCache.txt
