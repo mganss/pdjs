@@ -359,7 +359,7 @@ static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Loc
 {
     if (value->IsString() || value->IsStringObject())
     {
-        return { js_object_to_string(isolate, value), 0 };
+        return std::make_tuple(js_object_to_string(isolate, value), 0);
     }
     else if (value->IsObject())
     {
@@ -368,7 +368,7 @@ static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Loc
         {
             if (value == elem->Get(isolate))
             {
-                return { string("jsobject"), reinterpret_cast<intptr_t>(elem) };
+                return std::make_tuple(string("jsobject"), reinterpret_cast<intptr_t>(elem));
             }
         }
 
@@ -394,10 +394,10 @@ static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Loc
             }
         }, v8::WeakCallbackType::kParameter);
 
-        return { string("jsobject"), reinterpret_cast<intptr_t>(jso) };
+        return std::make_tuple(string("jsobject"), reinterpret_cast<intptr_t>(jso));
     }
 
-    return { string(), 0 };
+    return std::make_tuple(string(), 0);
 }
 
 static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* isolate, v8::Local<v8::Context> context, t_js* x)

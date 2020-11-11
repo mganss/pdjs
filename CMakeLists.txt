@@ -62,6 +62,8 @@ add_pd_external(pdjs_project js ${PROJECT_SOURCE_DIR}/pdjs/js.cpp)
 configure_file(pdjs/js-help.pd ${PD_OUTPUT_PATH}/js-help.pd COPYONLY)
 configure_file(pdjs/js-help.js ${PD_OUTPUT_PATH}/js-help.js COPYONLY)
 
+set_property(TARGET pdjs_project PROPERTY CXX_STANDARD 14)
+
 target_include_directories(pdjs_project PRIVATE v8/include)
 target_link_directories(pdjs_project PRIVATE v8/lib/${TARGET_TRIPLET})
 target_link_libraries(pdjs_project v8_monolith)
