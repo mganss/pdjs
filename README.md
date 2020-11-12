@@ -8,17 +8,17 @@ A JavaScript external for Pure Data based on [V8](https://v8.dev/).
 pdjs tries to emulate Max's [js](https://docs.cycling74.com/max8/refpages/js) object.
 Many JavaScript source files written for Max js should work unchanged with pdjs. 
 
-While the Max js object uses Mozilla's [SpiderMonkey](https://en.wikipedia.org/wiki/SpiderMonkey) JavaScript engine that was released in 2011 with Firefox 4.0 and thus
+While the Max js object uses a version of Mozilla's [SpiderMonkey](https://en.wikipedia.org/wiki/SpiderMonkey) JavaScript engine that was released in 2011 with Firefox 4.0 and thus
 lacks many newer language features (such as `let`), pdjs uses Google's V8 JavaScript engine which supports the latest ECMAScript standards and provides much better performance.
 
 ### Supported platforms
 
 - Windows x64
 - Linux x64
+- Linux arm64
 
 Planned:
 
-- Linux ARM64
 - macOS x64
 
 ## Usage
@@ -107,7 +107,7 @@ There is no support currently for other objects such as `Buffer`, `Dict`, `File`
 
 ## Building
 
-pdjs uses CMake to build. The V8 library is pulled in through [vcpkg](https://github.com/microsoft/vcpkg) and [pd.build](https://github.com/pierreguillot/pd.build) is used to build the external library.
+pdjs uses CMake to build. Prebuilt V8 binaries can be downloaded from [my V8 fork](https://github.com/mganss/v8/releases/latest) and [pd.build](https://github.com/pierreguillot/pd.build) is used to build the external library.
 
 ### Prerequisites
 
@@ -115,21 +115,20 @@ pdjs uses CMake to build. The V8 library is pulled in through [vcpkg](https://gi
 
 - Linux: 
   - g++
-  - cmake 3.14 or higher (if your distro has an older version, you can grab a static build from https://github.com/Microsoft/CMake/releases)
+  - cmake 3.13 or higher (if your distro has an older version, you can grab a static build from https://github.com/Microsoft/CMake/releases)
   - ninja-build
  
-### Installing the V8 package
+### V8 libraries
 
-vcpkg is used as a git submodule, so you can drop into a command line and [bootstrap vcpkg](https://github.com/microsoft/vcpkg#getting-started)
-in the vcpkg subdirectory after cloning this repo. Then, either do `vcpkg install v8:x64-windows-static` or `vcpkg install v8:x64-linux` and grab a coffee.
+The build process expects the V8 library `v8_monolith` library in `v8/lib/[platform]`, e.g. `v8/lib/x64-linux`. You can either download prebuilt binaries from https://github.com/mganss/v8/releases/latest or build your own. The repo contains the GN configuration files that were used to build V8 in the `v8` directory.
 
 ### Building
 
-Also check out the GitHub Actions [workflow definition](https://github.com/mganss/pdjs/blob/master/.github/workflows/main.yml) for more details on the build process. The GitHub Actions build doesn't use the V8 vcpkg from source but rather a pre-built export that only has the release binaries.
+Also check out the GitHub Actions [workflow definition](https://github.com/mganss/pdjs/blob/master/.github/workflows/main.yml) for more details on the build process.
 
 #### Windows
 
-Open the top-level directory of the repo in VS and hit F6. The CMakeSettings.json contains 4 configurations: `x64-Debug` and `x64-Release` for Windows builds and `WSL-GCC-Debug` and `WSL-GCC-Release` for Linux builds through WSL.
+Open the top-level directory of the repo in VS and hit F6. The CMakeSettings.json contains 4 configurations: `x64-Debug` and `x64-Release` for Windows builds and `WSL-GCC-Debug` and `WSL-GCC-Release` for x64 Linux builds through WSL.
 
 #### Linux
 
@@ -137,9 +136,7 @@ Open the top-level directory of the repo in VS and hit F6. The CMakeSettings.jso
 mkdir -p out/build/x64-linux-Debug
 cmake -G Ninja \
   -DVERSION=1.0 \
-  -DVCPKG_TARGET_TRIPLET=x64-linux \
   -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_TOOLCHAIN_FILE=vcpkg-export/scripts/buildsystems/vcpkg.cmake \
   -B out/build/x64-linux-Debug -S .
 cmake --build out/build/x64-linux-Debug -- -v
 ```
