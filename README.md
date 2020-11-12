@@ -23,7 +23,7 @@ Planned:
 
 ## Usage
 
-You can install through deken or grab a zip from [releases](https://github.com/mganss/pdjs/releases). Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute. For more usage information you can consult the [Max JavaScript documentation](https://docs.cycling74.com/max8/vignettes/javascriptinmax) which applies to pdjs as well.
+You can install through deken or grab a zip from [releases](https://github.com/mganss/pdjs/releases). Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute. You might also have to add a `declare -path pdjs` object so that PD can find the external. For more usage information you can consult the [Max JavaScript documentation](https://docs.cycling74.com/max8/vignettes/javascriptinmax) which applies to pdjs as well.
 
 ## Feature support
 
