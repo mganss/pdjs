@@ -8,6 +8,8 @@ if [ "$OS" = "Windows_NT" ]; then
 elif [ "$OSTYPE" = "linux-gnu" ]; then
     if [ "$HOSTTYPE" = "x86_64" ]; then
         export TRIPLET="x64-linux"
+    elif [ "$HOSTTYPE" = "aarch64" ]; then
+        export TRIPLET="arm64-linux"
     fi
 fi
 

@@ -57,7 +57,7 @@ jobs:
           curl -L -s -o lib.7z ${{ env.LIB_BINARIES_URL }}
           7zr x lib.7z
 
-      - name: Build
+      - name: Build x64-linux
         run: |
           sudo apt-get -qy install ninja-build
           mkdir -p out/build/x64-linux-Release
@@ -66,6 +66,19 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -B out/build/x64-linux-Release -S .
           cmake --build out/build/x64-linux-Release -- -v
+
+      - name: Build arm64-linux
+        run: |
+          sudo apt-get -qy install g++-aarch64-linux-gnu
+          mkdir -p out/build/arm64-linux-Release
+          cmake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=arm64-linux.cmake \
+            -B out/build/arm64-linux-Release -S .
+          cmake --build out/build/arm64-linux-Release -- -v
+          cd binaries/arm64-linux
+          mv js.pd_linux js.l_arm64
 
       - name: Test
         working-directory: ./test
@@ -80,6 +93,7 @@ jobs:
           path: |
             binaries/x64-linux/js.pd_linux
             binaries/x64-linux/js-help.*
+            binaries/arm64-inux/js.l_arm64
 
       - name: Build for coverage analysis
         run: |

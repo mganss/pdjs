@@ -3,7 +3,7 @@
 /binaries
 /vcpkg-export
 /vcpkg-export.7z
-/test/**/pd-*
+/test/pd-0.*
 /test/**/result.*.txt
 /test/**/expected*.txt
 /test/**/actual*.txt
