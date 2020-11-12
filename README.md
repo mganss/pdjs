@@ -23,8 +23,7 @@ Planned:
 
 ## Usage
 
-Currently, you'll have to grab a build artifact from [GitHub Actions](https://github.com/mganss/pdjs/actions) for your platform (`js.ps_linux` for Linux, `js.dll` for Windows)
-and place it where your PD patch can find it. Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute. For more usage information you can consult the [Max JavaScript documentation](https://docs.cycling74.com/max8/vignettes/javascriptinmax) which applies to pdjs as well.
+You can install through deken or grab a zip from [releases](https://github.com/mganss/pdjs/releases). Then create a `js` object giving it the name of a JavaScript file, e.g. `js src.js`, relative to your patch or absolute. For more usage information you can consult the [Max JavaScript documentation](https://docs.cycling74.com/max8/vignettes/javascriptinmax) which applies to pdjs as well.
 
 ## Feature support
 
@@ -120,7 +119,7 @@ pdjs uses CMake to build. Prebuilt V8 binaries can be downloaded from [my V8 for
  
 ### V8 libraries
 
-The build process expects the V8 library `v8_monolith` library in `v8/lib/[platform]`, e.g. `v8/lib/x64-linux`. You can either download prebuilt binaries from https://github.com/mganss/v8/releases/latest or build your own. The repo contains the GN configuration files that were used to build V8 in the `v8` directory.
+The build process expects the V8 library `v8_monolith` library in `v8/lib/[platform]`, e.g. `v8/lib/x64-linux`. You can either download prebuilt binaries from https://github.com/mganss/v8/releases/latest or build your own. This repo contains the GN configuration files that were used to build V8 in the [`v8`](https://github.com/mganss/pdjs/tree/master/v8) directory.
 
 ### Building
 
