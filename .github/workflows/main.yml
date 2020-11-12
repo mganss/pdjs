@@ -93,8 +93,8 @@ jobs:
         with:
           name: pdjs
           path: |
-            binaries/x64-linux/js.*
-            binaries/x64-linux/js-help.*
+            binaries/js.*
+            binaries/js-help.*
 
       - name: Build for coverage analysis
         run: |
