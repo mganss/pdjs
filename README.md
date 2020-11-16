@@ -16,9 +16,6 @@ lacks many newer language features (such as `let`), pdjs uses Google's V8 JavaSc
 - Windows x64
 - Linux x64
 - Linux arm64
-
-Planned:
-
 - macOS x64
 
 ## Usage
