@@ -5,11 +5,16 @@ if [ "$OS" = "Windows_NT" ]; then
     export TRIPLET="x64-windows"
     PD_EXT=".com"
     pacman -q --needed --noconfirm -S diffutils > /dev/null 2>&1
-elif [ "$OSTYPE" = "linux-gnu" ]; then
-    if [ "$HOSTTYPE" = "x86_64" ]; then
-        export TRIPLET="x64-linux"
-    elif [ "$HOSTTYPE" = "aarch64" ]; then
-        export TRIPLET="arm64-linux"
+else
+    if [ `uname -s` = "Linux" ]; then
+        TRIPLET="linux"
+    elif [ `uname -s` = "Darwin" ]; then
+        TRIPLET="macos"
+    fi
+    if [ `uname -m` = "x86_64" ]; then
+        export TRIPLET="x64-${TRIPLET}"
+    elif [ `uname -m` = "aarch64" ]; then
+        export TRIPLET="arm64-${TRIPLET}"
     fi
 fi
 
@@ -33,20 +38,20 @@ for TESTFILE in test-*/test-*.pd; do
     cp ./result.txt ./expected.txt
     cp ./result.${TRIPLET}.txt ./actual.txt
 
-    sed -i -r "s/^pdjs version.*/pdjs version/" ./expected.txt
-    sed -i -r "s/^pdjs version.*/pdjs version/" ./actual.txt
+    perl -pi -e'' "s/^pdjs version.*/pdjs version/g" ./expected.txt
+    perl -pi -e'' "s/^pdjs version.*/pdjs version/g" ./actual.txt
 
-    EXCEPTION_REGEX="s/^.+\.js:[0-9]+:(.+)/\1/"
-    sed -i -r "${EXCEPTION_REGEX}" ./expected.txt
-    sed -i -r "${EXCEPTION_REGEX}" ./actual.txt
+    EXCEPTION_REGEX="s/^.+\.js:[0-9]+:(.+)/\1/g"
+    perl -pi -e'' "${EXCEPTION_REGEX}" ./expected.txt
+    perl -pi -e'' "${EXCEPTION_REGEX}" ./actual.txt
 
-    ERROR_REGEX="s/^(error: Error.*) '.*\.js':/\1/"
-    sed -i -r "${ERROR_REGEX}" ./expected.txt
-    sed -i -r "${ERROR_REGEX}" ./actual.txt
+    ERROR_REGEX="s/^(error: Error.*) '.*\.js':/\1/g"
+    perl -pi -e'' "${ERROR_REGEX}" ./expected.txt
+    perl -pi -e'' "${ERROR_REGEX}" ./actual.txt
 
-    JSOBJECT_REGEX="s/jsobject [0-9]+/jsobject/"
-    sed -i -r "${JSOBJECT_REGEX}" ./expected.txt
-    sed -i -r "${JSOBJECT_REGEX}" ./actual.txt
+    JSOBJECT_REGEX="s/jsobject [0-9]+/jsobject/g"
+    perl -pi -e'' "${JSOBJECT_REGEX}" ./expected.txt
+    perl -pi -e'' "${JSOBJECT_REGEX}" ./actual.txt
 
     diff --strip-trailing-cr actual.txt ./expected.txt
 
