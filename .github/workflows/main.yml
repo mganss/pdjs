@@ -167,7 +167,6 @@ jobs:
           cmake -DVERSION=${{ env.VERSION }} \
             -DCMAKE_BUILD_TYPE=Release \
             -B out/build/x64-macos-Release -S .
-          cd 
           cmake --build out/build/x64-macos-Release -- VERBOSE=1
           cd binaries
 
