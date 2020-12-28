@@ -17,6 +17,7 @@ static t_class* js_class;
 static t_class* js_inlet_class;
 static unique_ptr<v8::Platform> js_platform;
 static v8::Isolate* js_isolate;
+static unordered_set<v8::Persistent<v8::Object>*> jsobjects;
 
 struct _js_inlet;
 
@@ -32,7 +33,6 @@ typedef struct _js
     vector<t_atom> args;
     int inlet = 0;
     string messagename;
-    unordered_set<v8::Persistent<v8::Object>*> jsobjects;
 } t_js;
 
 typedef struct _js_inlet
@@ -151,7 +151,7 @@ static v8::MaybeLocal<v8::Value> js_marshal_object(const t_atom* a, const t_js* 
     {
         auto p = stoull(ps);
         auto jso = reinterpret_cast<v8::Persistent<v8::Object>*>(p);
-        if (x->jsobjects.find(jso) != x->jsobjects.end())
+        if (jsobjects.find(jso) != jsobjects.end())
             return jso->Get(js_isolate);
     }
     catch (...) {}
@@ -364,7 +364,7 @@ static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Loc
     else if (value->IsObject())
     {
         // check if we already have a persistent handle to this object in the set
-        for (auto elem : x->jsobjects)
+        for (auto elem : jsobjects)
         {
             if (value == elem->Get(isolate))
             {
@@ -379,15 +379,14 @@ static tuple<string, intptr_t> js_unmarshal_string(v8::Isolate* isolate, v8::Loc
         wcbi->x = x;
         wcbi->jso = jso;
 
-        x->jsobjects.insert(jso);
+        jsobjects.insert(jso);
 
         jso->SetWeak(wcbi, [](const v8::WeakCallbackInfo<t_js_weakcallbackinfo>& data)
         {
             auto wcbi = data.GetParameter();
             if (wcbi != nullptr)
             {
-                if (wcbi->x != nullptr)
-                    wcbi->x->jsobjects.erase(wcbi->jso);
+                jsobjects.erase(wcbi->jso);
                 if (wcbi->jso != nullptr)
                     delete wcbi->jso;
                 delete wcbi;
@@ -409,7 +408,7 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
         double num;
         if (arg->NumberValue(context).To(&num))
         {
-            t_atom a;
+            t_atom a = {};
             SETFLOAT(&a, (t_float)num);
             args.push_back(a);
         }
@@ -431,7 +430,7 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
     {
         auto t = js_unmarshal_string(isolate, arg, x);
 
-        t_atom a;
+        t_atom a = {};
         SETSYMBOL(&a, gensym(get<0>(t).c_str()));
         args.push_back(a);
 
@@ -439,7 +438,7 @@ static vector<t_atom> js_unmarshal_arg(v8::Local<v8::Value> arg, v8::Isolate* is
 
         if (p > 0)
         {
-            t_atom ap;
+            t_atom ap = {};
             SETSYMBOL(&ap, gensym(to_string(p).c_str()));
             args.push_back(ap);
         }
@@ -464,7 +463,7 @@ static vector<t_atom> js_unmarshal_args(vector<v8::Local<v8::Value>> &args, v8::
 
 static t_symbol* js_get_type(vector<t_atom> &argv)
 {
-    auto first = argv[0];
+    auto &first = argv[0];
     t_symbol* type = NULL;
 
     if (argv.size() == 1)
@@ -717,6 +716,8 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
                 x->context = new v8::Persistent<v8::Context>(js_isolate, context);
             else
                 x->context->Reset(js_isolate, context);
+
+            context->SetSecurityToken(v8::Int32::New(js_isolate, 0));
         }
         else
         {
@@ -909,7 +910,7 @@ static void js_loadbang(t_js* x, t_floatarg action)
 {
     if (action == LB_LOAD)
     {
-        t_js_inlet inlet;
+        t_js_inlet inlet = {};
         inlet.index = 0;
         inlet.owner = x;
         js_anything(&inlet, gensym("loadbang"), 0, NULL);
