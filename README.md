@@ -101,6 +101,12 @@ Private functions are supported.
 
 There is no support currently for other objects such as `Buffer`, `Dict`, `File`, etc.
 
+### Sharing JavaScript objects across `js` object instances
+
+You can pass references to JavaScript objects across `js` object instances using the [`jsobject`](https://docs.cycling74.com/max8/vignettes/jsglobal#outlet) mechanism.
+
+There is also a special global variable called `__global__` that references the same object from every `js` object instance. It's similar to the [`Global`](https://docs.cycling74.com/max8/vignettes/jsglobalobject) object in Max. Unlike in Max, you can also call functions contained in the `__global__` object.
+
 ## Building
 
 pdjs uses CMake to build. Prebuilt V8 binaries can be downloaded from [my V8 fork](https://github.com/mganss/v8/releases/latest) and [pd.build](https://github.com/pierreguillot/pd.build) is used to build the external library.
