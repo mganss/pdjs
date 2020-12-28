@@ -24,3 +24,9 @@ function jso_mess3() {
     messnamed("jso", lo);
     lo = {};
 }
+
+function jso_global() {
+    var g = __global__;
+    post("g.x:", g.x);
+    g.f();
+}

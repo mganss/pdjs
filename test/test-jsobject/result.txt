@@ -1,12 +1,14 @@
 pdjs version  (v8 version 8.6.395.24)
-print: jso_in jsobject 8312400
+print: jso_in jsobject 996608
 jso_in test2
-print: jso_in jsobject 8311952
+g.x: test2
+g.f
+print: jso_in jsobject 996288
 jso_in test
-print: jso_in jsobject 8311968
+print: jso_in jsobject 996160
 jso_in other 
-print: jso_in jsobject 8311984
+print: jso_in jsobject 995936
 jso_in local
 jso_out
-print: jso_in jsobject 8311952
+print: jso_in jsobject 996288
 jso_in test

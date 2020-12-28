@@ -18,6 +18,7 @@ static t_class* js_inlet_class;
 static unique_ptr<v8::Platform> js_platform;
 static v8::Isolate* js_isolate;
 static unordered_set<v8::Persistent<v8::Object>*> jsobjects;
+static v8::Eternal<v8::Object>* js_global = nullptr;
 
 struct _js_inlet;
 
@@ -216,6 +217,10 @@ static void js_get(v8::Local<v8::Name> property,
     {
         vector<v8::Local<v8::Value>> args = js_marshal_args((int)x->args.size(), x->args.data(), x);
         info.GetReturnValue().Set(v8::Array::New(js_isolate, args.data(), args.size()));
+    }
+    else if (name == "__global__")
+    {
+        info.GetReturnValue().Set(js_global->Get(js_isolate));
     }
 }
 
@@ -726,6 +731,11 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
 
         v8::Context::Scope context_scope(context);
         {
+            if (js_global == nullptr)
+            {
+                js_global = new v8::Eternal<v8::Object>(js_isolate, v8::Object::New(js_isolate));
+            }
+
             v8::Local<v8::String> source;
 
             if (!js_readfile(js_isolate, path.c_str()).ToLocal(&source))
