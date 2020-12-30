@@ -30,3 +30,7 @@ function jso_global() {
     post("g.x:", g.x);
     g.f();
 }
+
+function anything(o) {
+    post("anything", o.x);
+}

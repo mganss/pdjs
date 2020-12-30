@@ -16,7 +16,7 @@
 #X obj 341 274 js test.js;
 #X obj 315 89 t b b b b b;
 #X obj 442 129 js test2.js;
-#X msg 449 198 jso_global;
+#X msg 449 220 jso_global;
 #X obj 469 90 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
 -1;
 #X connect 0 0 14 0;
@@ -38,5 +38,6 @@
 #X connect 14 3 8 0;
 #X connect 14 4 15 0;
 #X connect 15 0 16 0;
+#X connect 15 1 13 0;
 #X connect 16 0 13 0;
 #X connect 17 0 15 0;

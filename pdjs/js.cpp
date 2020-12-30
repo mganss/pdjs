@@ -879,18 +879,37 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
 
         if (v8::String::NewFromUtf8(js_isolate, name).ToLocal(&funcName))
         {
+            auto fallback = msgname != "loadbang";
             v8::Local<v8::Value> funcVal;
             auto hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
 
-            if (!hasFunc && v8::String::NewFromUtf8(js_isolate, "anything").ToLocal(&funcName))
+            if (!hasFunc && fallback && v8::String::NewFromUtf8(js_isolate, "anything").ToLocal(&funcName))
                 hasFunc = context->Global()->Get(context, funcName).ToLocal(&funcVal) && funcVal->IsFunction();
 
             if (hasFunc)
             {
+                vector<v8::Local<v8::Value>> args;
+                auto argi = 0;
+
+                if (msgname == "jsobject")
+                {
+                    v8::Local<v8::Value> val;
+
+                    if (argc >= 1 && argv[0].a_type == A_SYMBOL
+                        && js_marshal_object(&argv[0], x).ToLocal(&val))
+                    {
+                        args.push_back(val);
+                        argi++;
+                    }
+                }
+
+                vector<v8::Local<v8::Value>> margs = js_marshal_args(argc + argi, &argv[argi], x);
+
+                args.insert(args.end(), margs.begin(), margs.end());
+
                 v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(funcVal);
                 v8::TryCatch trycatch(js_isolate);
                 v8::Local<v8::Value> result;
-                vector<v8::Local<v8::Value>> args = js_marshal_args(argc, argv, x);
                 x->inlet = inlet->index;
                 x->messagename = msgname;
 
