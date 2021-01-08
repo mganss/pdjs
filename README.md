@@ -47,7 +47,7 @@ There is no built-in editor like in Max, source files have to be created and edi
 - [ ] `editfontsize`
 - [x] `getprop`
 - [x] `loadbang`
-- [ ] `open`
+- [x] `open` (Windows only)
 - [x] `setprop`
 - [ ] `statemessage`
 - [ ] `wclose`
