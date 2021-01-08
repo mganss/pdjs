@@ -807,9 +807,9 @@ static void js_free(t_js* x)
     x->~t_js();
 }
 
+#if WIN32
 static void js_menu_open(t_js* x)
 {
-#if WIN32
     if (!x->path.empty())
     {
         ShellExecute(0, 0, x->path.c_str(), 0, 0, SW_SHOW);
@@ -822,8 +822,8 @@ static void js_menu_open(t_js* x)
             pd_error(&x->x_obj, "%s: %s", x->path.c_str(), errorText);
         }
     }
-#endif
 }
+#endif
 
 static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_atom* argv)
 {
