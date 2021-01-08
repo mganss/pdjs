@@ -1,16 +1,12 @@
-pdjs version  (v8 version 8.5.210.20)
+pdjs version  (v8 version 8.6.395.24)
 error: Script file 'hjgjhgfjkh.js' not found.
 verbose(4): ... you might be able to track this down from the Find menu.
- js hjgjhgfjkh.js
-error: ... couldn't create
 error: Error compiling 'C:/Source/pdjs/test/test-compilation/compile_error.js':
 C:/Source/pdjs/test/test-compilation/compile_error.js:1: SyntaxError: Unexpected end of input
 (
  
 SyntaxError: Unexpected end of input
 
- js compile_error.js
-error: ... couldn't create
 error: Error running 'C:/Source/pdjs/test/test-compilation/run_error.js':
 C:/Source/pdjs/test/test-compilation/run_error.js:1: ReferenceError: xyz is not defined
 xyz();
@@ -18,11 +14,6 @@ xyz();
 ReferenceError: xyz is not defined
     at C:/Source/pdjs/test/test-compilation/run_error.js:1:1
 
- js run_error.js
-error: ... couldn't create
-error: Must specify source file.
- js
-error: ... couldn't create
 Hello, world!
 jsarguments test.js,arg1,2
 Hello, world!

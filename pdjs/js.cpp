@@ -5,6 +5,8 @@
 #include <v8-version-string.h>
 #if WIN32
 #include <Windows.h>
+#include <process.h>
+#include <comdef.h>
 #endif
 #include <sstream>
 #include <vector>
@@ -682,16 +684,16 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
     {
         auto file = js_getfile(x, script_name);
 
-        if (file.dir.size() == 0)
-            return NULL;
-
-        if (create_context)
+        if (file.dir.size() != 0)
         {
-            x->dir = file.dir;
-            x->path = file.path;
-        }
+            if (create_context)
+            {
+                x->dir = file.dir;
+                x->path = file.path;
+            }
 
-        path = file.path;
+            path = file.path;
+        }
     }
     else
     {
@@ -738,10 +740,13 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
 
             v8::Local<v8::String> source;
 
+            if (path.empty())
+                return x;
+
             if (!js_readfile(js_isolate, path.c_str()).ToLocal(&source))
             {
                 pd_error(&x->x_obj, "Error reading '%s'.", path.c_str());
-                return NULL;
+                return x;
             }
 
             v8::TryCatch trycatch(js_isolate);
@@ -755,14 +760,14 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
                 if (!v8::Script::Compile(context, source, &origin).ToLocal(&script))
                 {
                     pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                    return NULL;
+                    return x;
                 }
 
                 v8::Local<v8::Value> result;
                 if (!script->Run(context).ToLocal(&result))
                 {
                     pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                    return NULL;
+                    return x;
                 }
             }
             else
@@ -774,14 +779,14 @@ static t_js *js_load(t_js* x, const char *script_name = NULL, bool create_contex
                 if (!v8::ScriptCompiler::CompileFunctionInContext(context, &src, 0, NULL, 1, args).ToLocal(&function))
                 {
                     pd_error(&x->x_obj, "Error compiling '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                    return NULL;
+                    return x;
                 }
 
                 v8::Local<v8::Value> result;
                 if (!function->Call(context, *global, 0, NULL).ToLocal(&result))
                 {
                     pd_error(&x->x_obj, "Error running '%s':\n%s", path.c_str(), js_get_exception_msg(js_isolate, &trycatch).c_str());
-                    return NULL;
+                    return x;
                 }
             }
         }
@@ -800,6 +805,24 @@ static void js_free(t_js* x)
     }
 
     x->~t_js();
+}
+
+static void js_menu_open(t_js* x)
+{
+#if WIN32
+    if (!x->path.empty())
+    {
+        ShellExecute(0, 0, x->path.c_str(), 0, 0, SW_SHOW);
+        auto error = GetLastError();
+
+        if (error != 0)
+        {
+            _com_error error(error);
+            LPCTSTR errorText = error.ErrorMessage();
+            pd_error(&x->x_obj, "%s: %s", x->path.c_str(), errorText);
+        }
+    }
+#endif
 }
 
 static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_atom* argv)
@@ -873,6 +896,12 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
             && !context->Global()->Delete(context, v8::Local<v8::Name>::Cast(propName)).IsNothing())
                 return;
     }
+#if WIN32
+    else if (msgname == "open")
+    {
+        js_menu_open(x);
+    }
+#endif
     else
     {
         v8::Local<v8::String> funcName;
@@ -931,6 +960,10 @@ static void js_anything(t_js_inlet* inlet, const t_symbol* s, int argc, const t_
                     pd_error(&x->x_obj, "Function '%s' is private.", name);
                 }
             }
+            else if (fallback)
+            {
+                pd_error(&x->x_obj, "Function '%s' does not exist.", name);
+            }
         }
     }
 }
@@ -952,17 +985,12 @@ static t_js* js_new(const t_symbol*, int argc, t_atom* argv)
     new(x) t_js; // C++ placement new
 
     x->context = nullptr;
+    x->path = "";
     x->canvas = canvas_getcurrent();
     x->args.clear();
     x->args.insert(x->args.end(), argv, &argv[argc]);
 
-    if (argc < 1 || argv[0].a_type != A_SYMBOL)
-    {
-        pd_error(&x->x_obj, "Must specify source file.");
-        return NULL;
-    }
-
-    const char* script_name = argv[0].a_w.w_symbol->s_name;
+    const char* script_name = argc >= 1 && argv[0].a_type == A_SYMBOL ? argv[0].a_w.w_symbol->s_name : nullptr;
 
     js_set_inlets(x, 1);
     js_set_outlets(x, 1);
@@ -1019,6 +1047,9 @@ extern "C" void js_setup(void)
 
     c = class_new(gensym("js"), (t_newmethod)js_new, (t_method)js_free, sizeof(t_js), CLASS_NOINLET, A_GIMME, 0);
     class_addmethod(c, (t_method)js_loadbang, gensym("loadbang"), A_DEFFLOAT, 0);
+#if WIN32
+    class_addmethod(c, (t_method)js_menu_open, gensym("menu-open"), A_NULL);
+#endif
 
     js_class = c;
 
