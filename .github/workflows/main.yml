@@ -82,6 +82,19 @@ jobs:
           cd binaries
           cp arm64-linux/js.pd_linux ./js.l_arm64
 
+      - name: Build arm-linux
+        run: |
+          sudo apt-get -qy install g++-arm-linux-gnueabihf
+          mkdir -p out/build/arm-linux-Release
+          cmake -G Ninja \
+            -DVERSION=${{ env.VERSION }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=arm-linux.cmake \
+            -B out/build/arm-linux-Release -S .
+          cmake --build out/build/arm-linux-Release -- -v
+          cd binaries
+          cp arm-linux/js.pd_linux ./js.l_arm
+
       - name: Test
         working-directory: ./test
         run: |
