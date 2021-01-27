@@ -1,0 +1,16 @@
+is_debug = false
+target_cpu = "arm"
+v8_target_cpu = "arm"
+is_component_build = false
+is_clang = false
+use_goma = false
+goma_dir = "None"
+symbol_level = 0
+enable_iterator_debugging = false
+enable_stripping = true
+use_custom_libcxx = false
+v8_monolithic = true
+v8_use_external_startup_data = false
+v8_enable_verify_heap = false
+v8_enable_i18n_support = false
+use_sysroot = false
