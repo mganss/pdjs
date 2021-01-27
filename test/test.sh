@@ -15,6 +15,8 @@ else
         export TRIPLET="x64-${TRIPLET}"
     elif [ `uname -m` = "aarch64" ]; then
         export TRIPLET="arm64-${TRIPLET}"
+    elif [ `uname -m` = "armv7l" ]; then
+        export TRIPLET="arm-${TRIPLET}"
     fi
 fi
 
