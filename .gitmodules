@@ -1,6 +1,6 @@
 [submodule "pd.build"]
 	path = pd.build
-	url = https://github.com/pierreguillot/pd.build
+	url = https://github.com/mganss/pd.build
 [submodule "pure-data"]
 	path = pure-data
 	url = https://github.com/pure-data/pure-data
