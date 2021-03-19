@@ -1,13 +1,14 @@
-﻿#include <m_pd.h>
-#include <g_canvas.h>
-#include <libplatform/libplatform.h>
-#include <v8.h>
-#include <v8-version-string.h>
-#if WIN32
+﻿#if WIN32
+#include <cstdio>
 #include <Windows.h>
 #include <process.h>
 #include <comdef.h>
 #endif
+#include <m_pd.h>
+#include <g_canvas.h>
+#include <libplatform/libplatform.h>
+#include <v8.h>
+#include <v8-version-string.h>
 #include <sstream>
 #include <vector>
 #include <map>
@@ -1001,7 +1002,11 @@ static t_js* js_new(const t_symbol*, int argc, t_atom* argv)
     return x;
 }
 
-extern "C" void js_setup(void)
+extern "C"
+#if WIN32
+__declspec(dllexport)
+#endif
+void js_setup(void)
 {
     t_class* c = NULL;
 
