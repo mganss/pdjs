@@ -210,7 +210,7 @@ jobs:
           ./deken/deken
 
       - name: Download external
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: pdjs
           path: deken/pdjs
