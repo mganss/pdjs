@@ -38,7 +38,7 @@ jobs:
         run: ./test.sh
 
       - name: Archive external
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: pdjs
           path: |
@@ -102,7 +102,7 @@ jobs:
           bash ./test.sh
 
       - name: Archive external
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: pdjs
           path: |
@@ -190,7 +190,7 @@ jobs:
           bash ./test.sh
 
       - name: Archive external
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: pdjs
           path: |
@@ -235,7 +235,7 @@ jobs:
           ./deken package -v ${{ env.VERSION }} --objects objects.txt pdjs
 
       - name: Archive deken package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: deken
           path: deken/pdjs*.dek*
